@@ -20,7 +20,7 @@ from typing import Sequence, Optional, Union, Callable
 import numpy as np
 import pandas as pd
 
-from .backtesting import Strategy
+from . import Strategy
 from ._plotting import plot_heatmaps as _plot_heatmaps
 from ._util import _Array, _as_str
 
@@ -177,7 +177,7 @@ def resample_apply(
     a time frame specified by `rule`. When called from inside
     `backtesting.backtesting.Strategy.init`,
     the result (returned) series will be automatically wrapped in
-    `backtesting.backtesting.Strategy.I`
+    `backtesting.backtesting.Strategy.Indicator`
     wrapper method.
 
     `rule` is a valid [Pandas offset string] indicating
@@ -202,7 +202,7 @@ http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases
     but you might prefer another (e.g. `"max"` for peaks, or similar).
 
     Finally, any `*args` and `**kwargs` that are not already eaten by
-    implicit `backtesting.backtesting.Strategy.I` call
+    implicit `backtesting.backtesting.Strategy.Indicator` call
     are passed to `func`.
 
     For example, if we have a typical moving average function
@@ -240,7 +240,7 @@ http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases
                     return SMA(series, n).reindex(close.index).ffill()
 
                 # The result equivalent to the short example above:
-                self.sma = self.I(SMA, daily, 10, plot=False)
+                self.sma = self.Indicator(SMA, daily, 10, plot=False)
 
     """
     if func is None:
@@ -261,13 +261,13 @@ http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases
     resampled.name = _as_str(series) + '[' + rule + ']'
 
     # Check first few stack frames if we are being called from
-    # inside Strategy.init, and if so, extract Strategy.I wrapper.
+    # inside Strategy.init, and if so, extract Strategy.Indicator wrapper.
     frame, level = currentframe(), 0
     while frame and level <= 3:
         frame = frame.f_back
         level += 1
         if isinstance(frame.f_locals.get('self'), Strategy):  # type: ignore
-            strategy_I = frame.f_locals['self'].I  # type: ignore
+            strategy_I = frame.f_locals['self'].Indicator  # type: ignore
             break
     else:
 
@@ -377,7 +377,7 @@ class SignalStrategy(Strategy):
         If `plot` is `True`, the signal entry/exit indicators are plotted when
         `backtesting.backtesting.Backtest.plot` is called.
         """
-        self.__entry_signal = self.I(  # type: ignore
+        self.__entry_signal = self.Indicator(  # type: ignore
             lambda: pd.Series(entry_size, dtype=float).replace(0, np.nan),
             name='entry size',
             plot=plot,
@@ -387,7 +387,7 @@ class SignalStrategy(Strategy):
         )
 
         if exit_portion is not None:
-            self.__exit_signal = self.I(  # type: ignore
+            self.__exit_signal = self.Indicator(  # type: ignore
                 lambda: pd.Series(exit_portion, dtype=float).replace(0, np.nan),
                 name='exit portion',
                 plot=plot,

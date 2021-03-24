@@ -645,7 +645,7 @@ return this.labels[index] || "";
             value = np.atleast_2d(value)
 
             # Use .get()! A user might have assigned a Strategy.data-evolved
-            # _Array without Strategy.I()
+            # _Array without Strategy.Indicator()
             if not value._opts.get('plot') or _too_many_dims(value):
                 continue
 

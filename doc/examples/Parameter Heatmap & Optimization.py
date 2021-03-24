@@ -46,10 +46,10 @@ class Sma4Cross(Strategy):
     n_exit = 10
 
     def init(self):
-        self.sma1 = self.I(SMA, self.data.Close, self.n1)
-        self.sma2 = self.I(SMA, self.data.Close, self.n2)
-        self.sma_enter = self.I(SMA, self.data.Close, self.n_enter)
-        self.sma_exit = self.I(SMA, self.data.Close, self.n_exit)
+        self.sma1 = self.Indicator(SMA, self.data.Close, self.n1)
+        self.sma2 = self.Indicator(SMA, self.data.Close, self.n2)
+        self.sma_enter = self.Indicator(SMA, self.data.Close, self.n_enter)
+        self.sma_exit = self.Indicator(SMA, self.data.Close, self.n_exit)
 
     def next(self):
 

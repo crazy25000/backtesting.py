@@ -78,13 +78,13 @@ class System(Strategy):
 
     def init(self):
         # Compute moving averages the strategy demands
-        self.ma10 = self.I(SMA, self.data.Close, 10)
-        self.ma20 = self.I(SMA, self.data.Close, 20)
-        self.ma50 = self.I(SMA, self.data.Close, 50)
-        self.ma100 = self.I(SMA, self.data.Close, 100)
+        self.ma10 = self.Indicator(SMA, self.data.Close, 10)
+        self.ma20 = self.Indicator(SMA, self.data.Close, 20)
+        self.ma50 = self.Indicator(SMA, self.data.Close, 50)
+        self.ma100 = self.Indicator(SMA, self.data.Close, 100)
 
         # Compute daily RSI(30)
-        self.daily_rsi = self.I(RSI, self.data.Close, self.d_rsi)
+        self.daily_rsi = self.Indicator(RSI, self.data.Close, self.d_rsi)
 
         # To construct weekly RSI, we can use `resample_apply()`
         # helper function from the library

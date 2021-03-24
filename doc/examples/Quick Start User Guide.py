@@ -94,8 +94,8 @@ class SmaCross(Strategy):
 
     def init(self):
         # Precompute the two moving averages
-        self.sma1 = self.I(SMA, self.data.Close, self.n1)
-        self.sma2 = self.I(SMA, self.data.Close, self.n2)
+        self.sma1 = self.Indicator(SMA, self.data.Close, self.n1)
+        self.sma2 = self.Indicator(SMA, self.data.Close, self.n2)
 
     def next(self):
         # If sma1 crosses above sma2, close any existing
@@ -117,7 +117,7 @@ class SmaCross(Strategy):
 # [`self.data`](https://kernc.github.io/backtesting.py/doc/backtesting/backtesting.html#backtesting.backtesting.Strategy.data).
 #
 # In `init()`, we declare and **compute indicators indirectly by wrapping them in
-# [`self.I()`](https://kernc.github.io/backtesting.py/doc/backtesting/backtesting.html#backtesting.backtesting.Strategy.I)**.
+# [`self.Indicator()`](https://kernc.github.io/backtesting.py/doc/backtesting/backtesting.html#backtesting.backtesting.Strategy.I)**.
 # The wrapper is passed a function (our `SMA` function) along with any arguments to call it with (our _close_ values and the MA lag). Indicators wrapped in this way will be automatically plotted, and their legend strings will be intelligently inferred.
 #
 # In `next()`, we simply check if the faster moving average just crossed over the slower one. If it did and upwards, we close the possible short position and go long; if it did and downwards, we close the open long position and go short. Note, we don't adjust order size, so _Backtesting.py_ assumes _maximal possible position_. We use
@@ -140,7 +140,7 @@ class SmaCross(Strategy):
 
 # In `init()`, the whole series of points was available, whereas **in `next()`, the length of `self.data` and all declared indicators is adjusted** on each `next()` call so that `array[-1]` (e.g. `self.data.Close[-1]` or `self.sma1[-1]`) always contains the most recent value, `array[-2]` the previous value, etc. (ordinary Python indexing of ascending-sorted 1D arrays).
 #
-# **Note**: `self.data` and any indicators wrapped with `self.I` (e.g. `self.sma1`) are NumPy arrays for performance reasons. If you prefer pandas Series or DataFrame objects, use `Strategy.data.<column>.s` or `Strategy.data.df` accessors respectively. You could also construct the series manually, e.g. `pd.Series(self.data.Close, index=self.data.index)`.
+# **Note**: `self.data` and any indicators wrapped with `self.Indicator` (e.g. `self.sma1`) are NumPy arrays for performance reasons. If you prefer pandas Series or DataFrame objects, use `Strategy.data.<column>.s` or `Strategy.data.df` accessors respectively. You could also construct the series manually, e.g. `pd.Series(self.data.Close, index=self.data.index)`.
 #
 # We might avoid `self.position.close()` calls if we primed the
 # [`Backtest`](https://kernc.github.io/backtesting.py/doc/backtesting/backtesting.html#backtesting.backtesting.Backtest)

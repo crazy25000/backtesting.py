@@ -175,10 +175,10 @@ class MLTrainOnceStrategy(Strategy):
         self.clf.fit(X, y)
 
         # Plot y for inspection
-        self.I(get_y, self.data.df, name='y_true')
+        self.Indicator(get_y, self.data.df, name='y_true')
 
         # Prepare empty, all-NaN forecast indicator
-        self.forecasts = self.I(lambda: np.repeat(np.nan, len(self.data)), name='forecast')
+        self.forecasts = self.Indicator(lambda: np.repeat(np.nan, len(self.data)), name='forecast')
 
     def next(self):
         # Skip the training, in-sample data
