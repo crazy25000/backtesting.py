@@ -14,7 +14,7 @@ class _OutOfMoneyError(Exception):
     pass
 
 
-class _Broker:
+class Broker:
     def __init__(
         self,
         *,

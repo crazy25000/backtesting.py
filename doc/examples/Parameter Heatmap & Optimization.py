@@ -156,8 +156,7 @@ sns.heatmap(hm[::-1], cmap='viridis')
 # function to plot interactive heatmaps of all parameter combinations simultaneously.
 
 # +
-from backtesting.lib import plot_heatmaps
-
+from backtesting.plotting_helpers import plot_heatmaps
 
 plot_heatmaps(heatmap, agg='mean')
 # -

@@ -7,10 +7,13 @@ import numpy as np
 import pandas as pd
 
 from backtesting._util import _Data, _as_str, try_, _Indicator
-from backtesting.broker import _Broker
+from backtesting.broker import Broker
 from backtesting.order import Order
 from backtesting.position import Position
 from backtesting.trade import Trade
+
+
+__pdoc__ = {'Strategy.__init__': False}
 
 
 class Strategy(metaclass=ABCMeta):
@@ -24,7 +27,7 @@ class Strategy(metaclass=ABCMeta):
 
     def __init__(self, broker, data, params):
         self._indicators = []
-        self._broker: _Broker = broker
+        self._broker: Broker = broker
         self._data: _Data = data
         self._params = self._check_params(params)
 

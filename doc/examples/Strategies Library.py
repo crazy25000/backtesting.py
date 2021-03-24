@@ -44,7 +44,7 @@ from backtesting.test import SMA
 
 # +
 import pandas as pd
-from backtesting.lib import SignalStrategy, TrailingStrategy
+from backtesting.strategy_helpers import SignalStrategy, TrailingStrategy
 
 
 class SmaCross(SignalStrategy, TrailingStrategy):

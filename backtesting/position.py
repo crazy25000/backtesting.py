@@ -1,6 +1,9 @@
 import numpy as np
 
 
+__pdoc__ = {'Position.__init__': False}
+
+
 class Position:
     """
     Currently held asset position, available as

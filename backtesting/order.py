@@ -3,12 +3,7 @@ from typing import Optional
 from backtesting.trade import Trade
 
 
-__pdoc__ = {
-    'Strategy.__init__': False,
-    'Order.__init__': False,
-    'Position.__init__': False,
-    'Trade.__init__': False,
-}
+__pdoc__ = {'Order.__init__': False}
 
 
 class Order:

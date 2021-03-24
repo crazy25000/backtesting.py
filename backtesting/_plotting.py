@@ -123,7 +123,8 @@ def _maybe_resample_data(resample_rule, df, indicators, equity_data, trades):
         )
         warnings.warn(f'Data contains too many candlesticks to plot; downsampling to {freq!r}. ' 'See `Backtest.plot(resample=...)`')
 
-    from .lib import OHLCV_AGG, TRADES_AGG, _EQUITY_AGG
+    from .lib import TRADES_AGG, _EQUITY_AGG
+    from backtesting.ohlc_helpers import OHLCV_AGG
 
     df = df.resample(freq, label='right').agg(OHLCV_AGG).dropna()
 
@@ -220,7 +221,7 @@ def plot(
     plot_pl = plot_pl and not trades.empty
     is_datetime_index = isinstance(df.index, pd.DatetimeIndex)
 
-    from .lib import OHLCV_AGG
+    from backtesting.ohlc_helpers import OHLCV_AGG
 
     # ohlc df may contain many columns. We're only interested in, and pass on to Bokeh, these
     df = df[list(OHLCV_AGG.keys())].copy(deep=False)

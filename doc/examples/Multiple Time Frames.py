@@ -68,7 +68,7 @@ def RSI(array, n):
 
 # +
 from backtesting import Strategy, Backtest
-from backtesting.lib import resample_apply
+from backtesting.ohlc_helpers import resample_apply
 
 
 class System(Strategy):

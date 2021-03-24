@@ -17,17 +17,14 @@ import pandas as pd
 from backtesting._util import _Indicator, _as_str, _Array, try_
 from backtesting.backtesting import Backtest, Strategy
 from backtesting.lib import (
-    OHLCV_AGG,
     barssince,
     cross,
     crossover,
     quantile,
-    SignalStrategy,
-    TrailingStrategy,
-    resample_apply,
-    plot_heatmaps,
-    random_ohlc_data,
 )
+from backtesting.ohlc_helpers import OHLCV_AGG, resample_apply, random_ohlc_data
+from backtesting.plotting_helpers import plot_heatmaps
+from backtesting.strategy_helpers import SignalStrategy, TrailingStrategy
 from backtesting.test import GOOG, EURUSD, SMA
 
 SHORT_DATA = GOOG.iloc[:20]  # Short data for fast tests with no indicator lag

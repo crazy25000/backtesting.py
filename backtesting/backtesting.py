@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from backtesting.strategy import Strategy
-from backtesting.broker import _OutOfMoneyError, _Broker
+from backtesting.broker import _OutOfMoneyError, Broker
 
 try:
     from tqdm.auto import tqdm as _tqdm
@@ -153,7 +153,7 @@ class Backtest:
 
         self._data: pd.DataFrame = data
         self._broker = partial(
-            _Broker,
+            Broker,
             cash=cash,
             commission=commission,
             margin=margin,
@@ -205,7 +205,7 @@ class Backtest:
             dtype: object
         """
         data = _Data(self._data.copy(deep=False))
-        broker: _Broker = self._broker(data=data)
+        broker: Broker = self._broker(data=data)
         strategy: Strategy = self._strategy(broker, data, kwargs)
 
         strategy.init()
@@ -574,7 +574,7 @@ class Backtest:
         df = df.reindex(dd.index)
         return df['duration'], df['peak_dd']
 
-    def _compute_stats(self, broker: _Broker, strategy: Strategy) -> pd.Series:
+    def _compute_stats(self, broker: Broker, strategy: Strategy) -> pd.Series:
         data = self._data
         index = data.index
 

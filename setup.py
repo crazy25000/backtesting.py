@@ -33,7 +33,7 @@ if __name__ == '__main__':
             'numpy',
             'pandas >= 0.25.0, != 0.25.0',
             'bokeh >= 1.4.0',
-            'tqdm == 4.59.0',
+            'tqdm >= 4.59.0',
         ],
         extras_require={
             'doc': [
