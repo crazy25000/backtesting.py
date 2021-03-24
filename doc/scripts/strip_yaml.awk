@@ -1,5 +1,5 @@
 #!/usr/bin/awk -f
- 
+
 # Remove YAML front matter from jupytext-converted .py notebooks
 
 BEGIN { drop = 0; }

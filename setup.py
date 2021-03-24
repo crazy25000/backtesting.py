@@ -1,8 +1,8 @@
 import os
 import sys
 
-if sys.version_info < (3, 6):
-    sys.exit('ERROR: Backtesting.py requires Python 3.6+')
+if sys.version_info < (3, 9):
+    sys.exit('ERROR: Backtesting.py requires Python 3.9+')
 
 
 if __name__ == '__main__':
@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
     setup(
         name='Backtesting',
-        description="Backtest trading strategies in Python",
+        description='Backtest trading strategies in Python',
         license='AGPL-3.0',
         url='https://kernc.github.io/backtesting.py/',
         project_urls={
@@ -18,8 +18,7 @@ if __name__ == '__main__':
             'Source': 'https://github.com/kernc/backtesting.py/',
             'Tracker': 'https://github.com/kernc/backtesting.py/issues',
         },
-        long_description=open(os.path.join(os.path.dirname(__file__), 'README.md'),
-                              encoding='utf-8').read(),
+        long_description=open(os.path.join(os.path.dirname(__file__), 'README.md'), encoding='utf-8').read(),
         long_description_content_type='text/markdown',
         packages=find_packages(),
         include_package_data=True,
@@ -34,29 +33,34 @@ if __name__ == '__main__':
             'numpy',
             'pandas >= 0.25.0, != 0.25.0',
             'bokeh >= 1.4.0',
+            'tqdm == 4.59.0',
         ],
         extras_require={
             'doc': [
-                'pdoc3',
+                'ipykernel',  # for nbconvert
+                'jupyter_client',  # for nbconvert
                 'jupytext >= 1.3',
                 'nbconvert',
-                'ipykernel',       # for nbconvert
-                'jupyter_client',  # for nbconvert
+                'pdoc3',
             ],
             'test': [
-                'seaborn',
                 'matplotlib',
                 'scikit-learn',
                 'scikit-optimize',
+                'seaborn',
             ],
             'dev': [
-                'flake8',
+                'black',
                 'coverage',
+                'flake8',
+                'isort',
                 'mypy',
+                'pre-commit',
+                'tox',
             ],
         },
-        test_suite="backtesting.test",
-        python_requires='>=3.6',
+        test_suite='backtesting.test',
+        python_requires='>=3.8',
         author='Zach Lûster',
         classifiers=[
             'Intended Audience :: Financial and Insurance Industry',

@@ -45,6 +45,7 @@ class _Array(np.ndarray):
     ndarray extended to supply .name and other arbitrary properties
     in ._opts dict.
     """
+
     def __new__(cls, array, *, name=None, **kwargs):
         obj = np.asarray(array).view(cls)
         obj.name = name or array.name
@@ -69,7 +70,7 @@ class _Array(np.ndarray):
             return super().__float__()
 
     def to_series(self):
-        warnings.warn("`.to_series()` is deprecated. For pd.Series conversion, use accessor `.s`")
+        warnings.warn('`.to_series()` is deprecated. For pd.Series conversion, use accessor `.s`')
         return self.s
 
     @property
@@ -80,8 +81,7 @@ class _Array(np.ndarray):
     @property
     def df(self) -> pd.DataFrame:
         values = np.atleast_2d(np.asarray(self))
-        df = pd.DataFrame(values.T, index=self._opts['data'].index,
-                          columns=[self.name] * len(values))
+        df = pd.DataFrame(values.T, index=self._opts['data'].index, columns=[self.name] * len(values))
         return df
 
 
@@ -96,6 +96,7 @@ class _Data:
     and the returned "series" are _not_ `pd.Series` but `np.ndarray`
     for performance reasons.
     """
+
     def __init__(self, df: pd.DataFrame):
         self.__df = df
         self.__i = len(df)
@@ -118,8 +119,7 @@ class _Data:
         self.__cache.clear()
 
     def _update(self):
-        self.__arrays = {col: _Array(arr, data=self)
-                         for col, arr in self.__df.items()}
+        self.__arrays = {col: _Array(arr, data=self) for col, arr in self.__df.items()}
         # Leave index as Series because pd.Timestamp nicer API to work with
         self.__arrays['__index'] = self.__df.index.copy()
 
@@ -134,21 +134,18 @@ class _Data:
 
     @property
     def df(self) -> pd.DataFrame:
-        return (self.__df.iloc[:self.__i]
-                if self.__i < len(self.__df)
-                else self.__df)
+        return self.__df.iloc[: self.__i] if self.__i < len(self.__df) else self.__df
 
     @property
     def pip(self) -> float:
         if self.__pip is None:
-            self.__pip = 10**-np.median([len(s.partition('.')[-1])
-                                         for s in self.__arrays['Close'].astype(str)])
+            self.__pip = 10 ** -np.median([len(s.partition('.')[-1]) for s in self.__arrays['Close'].astype(str)])
         return self.__pip
 
     def __get_array(self, key) -> _Array:
         arr = self.__cache.get(key)
         if arr is None:
-            arr = self.__cache[key] = self.__arrays[key][:self.__i]
+            arr = self.__cache[key] = self.__arrays[key][: self.__i]
         return arr
 
     @property

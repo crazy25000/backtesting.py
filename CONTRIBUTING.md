@@ -42,7 +42,7 @@ Before submitting a PR, ensure the tests pass:
 
 Also ensure that idiomatic code style is respected by running:
 
-    flake8  
+    flake8
     mypy backtesting
 
 

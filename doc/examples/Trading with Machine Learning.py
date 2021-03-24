@@ -14,7 +14,7 @@
 
 # # Trading with Machine Learning Models
 #
-# This tutorial will show how to train and backtest a 
+# This tutorial will show how to train and backtest a
 # [machine learning](https://en.wikipedia.org/wiki/Machine_learning)
 # price forecast model with _backtesting.py_ framework. It is assumed you're already familiar with
 # [basic framework usage](https://kernc.github.io/backtesting.py/doc/examples/Quick Start User Guide.html)
@@ -32,7 +32,7 @@ data
 # -
 
 # In
-# [supervised machine learning](https://en.wikipedia.org/wiki/Supervised_learning), 
+# [supervised machine learning](https://en.wikipedia.org/wiki/Supervised_learning),
 # we try to learn a function that maps input feature vectors (independent variables) into known output values (dependent variable):
 #
 # $$ f\colon X \to \mathbf{y} $$
@@ -46,8 +46,8 @@ def BBANDS(data, n_lookback, n_std):
     """Bollinger bands indicator"""
     hlc3 = (data.High + data.Low + data.Close) / 3
     mean, std = hlc3.rolling(n_lookback).mean(), hlc3.rolling(n_lookback).std()
-    upper = mean + n_std*std
-    lower = mean - n_std*std
+    upper = mean + n_std * std
+    lower = mean - n_std * std
     return upper, lower
 
 
@@ -103,7 +103,7 @@ def get_X(data):
 def get_y(data):
     """Return dependent variable y"""
     y = data.Close.pct_change(48).shift(-48)  # Returns after roughly two days
-    y[y.between(-.004, .004)] = 0             # Devalue returns smaller than 0.4%
+    y[y.between(-0.004, 0.004)] = 0  # Devalue returns smaller than 0.4%
     y[y > 0] = 1
     y[y < 0] = -1
     return y
@@ -136,14 +136,14 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 
 X, y = get_clean_Xy(data)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.5, random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
 
 clf = KNeighborsClassifier(7)  # Model the output based on 7 "nearest" examples
 clf.fit(X_train, y_train)
 
 y_pred = clf.predict(X_test)
 
-_ = pd.DataFrame({'y_true': y_test, 'y_pred': y_pred}).plot(figsize=(15, 2), alpha=.7)
+_ = pd.DataFrame({'y_true': y_test, 'y_pred': y_pred}).plot(figsize=(15, 2), alpha=0.7)
 print('Classification accuracy: ', np.mean(y_test == y_pred))
 # -
 
@@ -163,9 +163,9 @@ N_TRAIN = 400
 
 
 class MLTrainOnceStrategy(Strategy):
-    price_delta = .004  # 0.4%
+    price_delta = 0.004  # 0.4%
 
-    def init(self):        
+    def init(self):
         # Init our model, a kNN classifier
         self.clf = KNeighborsClassifier(7)
 
@@ -200,14 +200,14 @@ class MLTrainOnceStrategy(Strategy):
         # place a long order for 20% of available account equity. Vice versa for short.
         # Also set target take-profit and stop-loss prices to be one price_delta
         # away from the current closing price.
-        upper, lower = close[-1] * (1 + np.r_[1, -1]*self.price_delta)
+        upper, lower = close[-1] * (1 + np.r_[1, -1] * self.price_delta)
 
         if forecast == 1 and not self.position.is_long:
-            self.buy(size=.2, tp=upper, sl=lower)
+            self.buy(size=0.2, tp=upper, sl=lower)
         elif forecast == -1 and not self.position.is_short:
-            self.sell(size=.2, tp=lower, sl=upper)
+            self.sell(size=0.2, tp=lower, sl=upper)
 
-        # Additionally, set aggressive stop-loss on trades that have been open 
+        # Additionally, set aggressive stop-loss on trades that have been open
         # for more than two days
         for trade in self.trades:
             if current_time - trade.entry_time > pd.Timedelta('2 days'):
@@ -217,7 +217,7 @@ class MLTrainOnceStrategy(Strategy):
                     trade.sl = min(trade.sl, high)
 
 
-bt = Backtest(data, MLTrainOnceStrategy, commission=.0002, margin=.05)
+bt = Backtest(data, MLTrainOnceStrategy, commission=0.0002, margin=0.05)
 bt.run()
 # -
 
@@ -231,6 +231,7 @@ bt.plot()
 
 # +
 # %%time
+
 
 class MLWalkForwardStrategy(MLTrainOnceStrategy):
     def next(self):
@@ -249,12 +250,12 @@ class MLWalkForwardStrategy(MLTrainOnceStrategy):
         X, y = get_clean_Xy(df)
         self.clf.fit(X, y)
 
-        # Now that the model is fitted, 
+        # Now that the model is fitted,
         # proceed the same as in MLTrainOnceStrategy
         super().next()
 
 
-bt = Backtest(data, MLWalkForwardStrategy, commission=.0002, margin=.05)
+bt = Backtest(data, MLWalkForwardStrategy, commission=0.0002, margin=0.05)
 bt.run()
 # -
 

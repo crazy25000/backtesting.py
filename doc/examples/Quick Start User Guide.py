@@ -23,11 +23,11 @@
 #
 # ## Data
 #
-# _You bring your own data._ Backtesting ingests _all kinds of 
+# _You bring your own data._ Backtesting ingests _all kinds of
 # [OHLC](https://en.wikipedia.org/wiki/Open-high-low-close_chart)
 # data_ (stocks, forex, futures, crypto, ...) as a
 # [pandas.DataFrame](https://pandas.pydata.org/pandas-docs/stable/10min.html)
-# with columns `'Open'`, `'High'`, `'Low'`, `'Close'` and (optionally) `'Volume'`. Such data is widely obtainable (see: 
+# with columns `'Open'`, `'High'`, `'Low'`, `'Close'` and (optionally) `'Volume'`. Such data is widely obtainable (see:
 # [pandas-datareader](https://pandas-datareader.readthedocs.io/en/latest/),
 # [Quandl](https://www.quandl.com/tools/python),
 # [findatapy](https://github.com/cuemacro/findatapy)).
@@ -65,7 +65,7 @@ def SMA(values, n):
 
 # -
 
-# A new strategy needs to extend 
+# A new strategy needs to extend
 # [`Strategy`](https://kernc.github.io/backtesting.py/doc/backtesting/backtesting.html#backtesting.backtesting.Strategy)
 # class and override its two abstract methods:
 # [`init()`](https://kernc.github.io/backtesting.py/doc/backtesting/backtesting.html#backtesting.backtesting.Strategy.init) and
@@ -91,12 +91,12 @@ class SmaCross(Strategy):
     # for later optimization
     n1 = 10
     n2 = 20
-    
+
     def init(self):
         # Precompute the two moving averages
         self.sma1 = self.I(SMA, self.data.Close, self.n1)
         self.sma2 = self.I(SMA, self.data.Close, self.n2)
-    
+
     def next(self):
         # If sma1 crosses above sma2, close any existing
         # short trades, and buy the asset
@@ -116,7 +116,7 @@ class SmaCross(Strategy):
 # In `init()` as well as in `next()`, the data the strategy is simulated on is available as an instance variable
 # [`self.data`](https://kernc.github.io/backtesting.py/doc/backtesting/backtesting.html#backtesting.backtesting.Strategy.data).
 #
-# In `init()`, we declare and **compute indicators indirectly by wrapping them in 
+# In `init()`, we declare and **compute indicators indirectly by wrapping them in
 # [`self.I()`](https://kernc.github.io/backtesting.py/doc/backtesting/backtesting.html#backtesting.backtesting.Strategy.I)**.
 # The wrapper is passed a function (our `SMA` function) along with any arguments to call it with (our _close_ values and the MA lag). Indicators wrapped in this way will be automatically plotted, and their legend strings will be intelligently inferred.
 #
@@ -155,7 +155,7 @@ class SmaCross(Strategy):
 # +
 from backtesting import Backtest
 
-bt = Backtest(GOOG, SmaCross, cash=10_000, commission=.002)
+bt = Backtest(GOOG, SmaCross, cash=10_000, commission=0.002)
 stats = bt.run()
 stats
 # -
@@ -179,10 +179,12 @@ bt.plot()
 # +
 # %%time
 
-stats = bt.optimize(n1=range(5, 30, 5),
-                    n2=range(10, 70, 5),
-                    maximize='Equity Final [$]',
-                    constraint=lambda param: param.n1 < param.n2)
+stats = bt.optimize(
+    n1=range(5, 30, 5),
+    n2=range(10, 70, 5),
+    maximize='Equity Final [$]',
+    constraint=lambda param: param.n1 < param.n2,
+)
 stats
 # -
 
