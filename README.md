@@ -1,9 +1,10 @@
 Forked from https://github.com/kernc/backtesting.py
 
+Run tests, linting: `tox`
 
 ### TODO:
 - Enforce style consistency
-  - Add tox, black, pre-commit
+  - [x] Add tox, black, pre-commit
 - Replace Pandas DataFrames with CUDA accelerated DataFrames
   - Add [cuDF](https://github.com/rapidsai/cudf)
 - Replace Numpy arrays with CUDA accelerated arrays
