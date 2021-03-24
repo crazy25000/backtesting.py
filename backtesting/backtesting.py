@@ -430,13 +430,8 @@ class Backtest:
                 # Otherwise (i.e. on Windos), sequential computation will be "faster".
                 if mp.get_start_method(allow_none=False) == 'fork':
                     with ProcessPoolExecutor() as executor:
-                        futures = [executor.submit(Backtest._mp_task, backtest_uuid, i)
-                                   for i in range(len(param_batches))]
-                        for future in _tqdm(
-                            as_completed(futures),
-                            total=len(futures),
-                            desc='Backtest.grid'
-                        ):
+                        futures = [executor.submit(Backtest._mp_task, backtest_uuid, i) for i in range(len(param_batches))]
+                        for future in _tqdm(as_completed(futures), total=len(futures), desc='Backtest.grid'):
                             batch_index, values = future.result()
                             for value, params in zip(values, param_batches[batch_index]):
                                 heatmap[tuple(params.values())] = value
