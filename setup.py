@@ -48,6 +48,7 @@ if __name__ == '__main__':
                 'scikit-learn',
                 'scikit-optimize',
                 'seaborn',
+                'pytest',
             ],
             'dev': [
                 'black',
