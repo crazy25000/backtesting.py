@@ -1,7 +1,5 @@
 import numpy as np
 
-from backtesting.broker import _Broker
-
 
 class Position:
     """
@@ -14,7 +12,7 @@ class Position:
             ...  # we have a position, either long or short
     """
 
-    def __init__(self, broker: '_Broker'):
+    def __init__(self, broker):
         self.__broker = broker
 
     def __bool__(self):

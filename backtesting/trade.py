@@ -1,12 +1,9 @@
 from copy import copy
 from math import copysign
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import numpy as np
 import pandas as pd
-
-from backtesting.broker import _Broker
-from backtesting.order import Order
 
 
 class Trade:
@@ -15,15 +12,15 @@ class Trade:
     Find active trades in `Strategy.trades` and closed, settled trades in `Strategy.closed_trades`.
     """
 
-    def __init__(self, broker: '_Broker', size: int, entry_price: float, entry_bar):
+    def __init__(self, broker, size: int, entry_price: float, entry_bar):
         self.__broker = broker
         self.__size = size
         self.__entry_price = entry_price
         self.__exit_price: Optional[float] = None
         self.__entry_bar: int = entry_bar
         self.__exit_bar: Optional[int] = None
-        self.__sl_order: Optional[Order] = None
-        self.__tp_order: Optional[Order] = None
+        self.__sl_order: Optional[Any] = None
+        self.__tp_order: Optional[Any] = None
 
     def __repr__(self):
         return (
@@ -40,6 +37,8 @@ class Trade:
         return copy(self)._replace(**kwargs)
 
     def close(self, portion: float = 1.0):
+        from backtesting.order import Order
+
         """Place new `Order` to close `portion` of the trade at next market price."""
         assert 0 < portion <= 1, 'portion must be a fraction between 0 and 1'
         size = copysign(max(1, round(abs(self.__size) * portion)), -self.__size)
@@ -161,6 +160,9 @@ class Trade:
     def __set_contingent(self, type, price):
         assert type in ('sl', 'tp')
         assert price is None or 0 < price < np.inf
+
+        from backtesting.order import Order
+
         attr = f'_{self.__class__.__qualname__}__{type}_order'
         order: Order = getattr(self, attr)
         if order:

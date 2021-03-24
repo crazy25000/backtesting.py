@@ -54,7 +54,7 @@ try:
 except ImportError:
     __version__ = '?.?.?'  # Package not installed
 
-from .backtesting import Backtest  # noqa: F401
-from .strategy import Strategy
-from . import lib  # noqa: F401
-from ._plotting import set_bokeh_output  # noqa: F401
+from backtesting.backtesting import Backtest  # noqa: F401
+from backtesting.strategy import Strategy
+from backtesting import lib  # noqa: F401
+from backtesting._plotting import set_bokeh_output  # noqa: F401

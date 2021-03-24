@@ -17,8 +17,8 @@ from typing import Callable, Dict, List, Sequence, Tuple, Type, Union
 import numpy as np
 import pandas as pd
 
-from . import Strategy
-from .broker import _OutOfMoneyError, _Broker
+from backtesting.strategy import Strategy
+from backtesting.broker import _OutOfMoneyError, _Broker
 
 try:
     from tqdm.auto import tqdm as _tqdm
@@ -32,13 +32,6 @@ except ImportError:
 
 from ._plotting import plot
 from ._util import _Indicator, _Data, _data_period, try_
-
-__pdoc__ = {
-    'Strategy.__init__': False,
-    'Order.__init__': False,
-    'Position.__init__': False,
-    'Trade.__init__': False,
-}
 
 
 class Backtest:

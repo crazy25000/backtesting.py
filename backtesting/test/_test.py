@@ -14,7 +14,8 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 
-from backtesting import Backtest, Strategy
+from backtesting._util import _Indicator, _as_str, _Array, try_
+from backtesting.backtesting import Backtest, Strategy
 from backtesting.lib import (
     OHLCV_AGG,
     barssince,
@@ -28,7 +29,6 @@ from backtesting.lib import (
     random_ohlc_data,
 )
 from backtesting.test import GOOG, EURUSD, SMA
-from backtesting._util import _Indicator, _as_str, _Array, try_
 
 SHORT_DATA = GOOG.iloc[:20]  # Short data for fast tests with no indicator lag
 
@@ -942,13 +942,6 @@ class TestDocs(TestCase):
         stats = Backtest(SHORT_DATA, SmaCross).run()
         for key in stats.index:
             self.assertIn(key, Backtest.run.__doc__)
-
-    def test_readme_contains_stats_keys(self):
-        with open(os.path.join(os.path.dirname(__file__), '..', '..', 'README.md')) as f:
-            readme = f.read()
-        stats = Backtest(SHORT_DATA, SmaCross).run()
-        for key in stats.index:
-            self.assertIn(key, readme)
 
 
 if __name__ == '__main__':

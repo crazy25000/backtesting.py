@@ -1,8 +1,14 @@
 from typing import Optional
 
-from backtesting.backtesting import __pdoc__
-from backtesting.broker import _Broker
 from backtesting.trade import Trade
+
+
+__pdoc__ = {
+    'Strategy.__init__': False,
+    'Order.__init__': False,
+    'Position.__init__': False,
+    'Trade.__init__': False,
+}
 
 
 class Order:
@@ -23,7 +29,7 @@ class Order:
 
     def __init__(
         self,
-        broker: '_Broker',
+        broker,
         size: float,
         limit_price: float = None,
         stop_price: float = None,
