@@ -16,20 +16,10 @@ from typing import Callable, Dict, List, Sequence, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
+from tqdm.auto import tqdm as _tqdm
 
-from backtesting.strategy import Strategy
 from backtesting.broker import _OutOfMoneyError, Broker
-
-try:
-    from tqdm.auto import tqdm as _tqdm
-
-    _tqdm = partial(_tqdm, leave=False)
-except ImportError:
-
-    def _tqdm(seq, **_):
-        return seq
-
-
+from backtesting.strategy import Strategy
 from ._plotting import plot
 from ._util import _Indicator, _Data, _data_period, try_
 
@@ -493,11 +483,12 @@ class Backtest:
 
             # np.inf/np.nan breaks sklearn, np.finfo(float).max breaks skopt.plots.plot_objective
             INVALID = 1e300
-            progress = iter(_tqdm(repeat(None), total=max_tries, desc='Backtest.optimize'))
+            progress = _tqdm(dimensions, total=max_tries, desc='Backtest.optimize', leave=False)
 
             @use_named_args(dimensions=dimensions)
             def objective_function(**params):
-                next(progress)
+                progress.update(1)
+
                 # Check constraints
                 # TODO: Adjust after https://github.com/scikit-optimize/scikit-optimize/pull/971
                 if not constraint(AttrDict(params)):
@@ -542,7 +533,8 @@ class Backtest:
                 res.x_iters = list(compress(res.x_iters, valid))
                 res.func_vals = res.func_vals[valid]
                 output.append(res)
-
+            progress.clear()
+            progress.close()
             return stats if len(output) == 1 else tuple(output)
 
         if method == 'grid':
