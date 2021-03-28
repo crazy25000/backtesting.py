@@ -156,6 +156,10 @@ class Backtest:
         self._results = None
 
     def run(self, **kwargs) -> pd.Series:
+        # from pyinstrument import Profiler
+        # profiler = Profiler(interval=0.0001)
+        # profiler.start()
+
         """
         Run the backtest. Returns `pd.Series` with results and statistics.
 
@@ -245,6 +249,8 @@ class Backtest:
             data._set_length(len(self._data))
 
             self._results = self._compute_stats(broker, strategy)
+        # profiler.stop()
+        # self._results['profiler'] = profiler
         return self._results
 
     def optimize(
