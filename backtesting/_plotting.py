@@ -2,15 +2,16 @@ import os
 import re
 import sys
 import warnings
-from itertools import cycle, combinations
 from functools import partial
+from itertools import cycle, combinations
 from typing import Callable, List, Union
 
 import numpy as np
 import pandas as pd
-
 from bokeh.colors.named import lime as BULL_COLOR, tomato as BEAR_COLOR
-from bokeh.plotting import figure as _figure
+from bokeh.io import output_notebook, output_file, show
+from bokeh.io.state import curstate
+from bokeh.layouts import gridplot
 from bokeh.models import (
     CrosshairTool,
     CustomJS,
@@ -24,10 +25,8 @@ from bokeh.models import (
     WheelZoomTool,
     LinearColorMapper,
 )
-from bokeh.io import output_notebook, output_file, show
-from bokeh.io.state import curstate
-from bokeh.layouts import gridplot
 from bokeh.palettes import Category10
+from bokeh.plotting import figure as _figure
 from bokeh.transform import factor_cmap
 
 from backtesting._util import _data_period, _as_list, _Indicator
