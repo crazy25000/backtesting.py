@@ -4,7 +4,6 @@ concurrency =
     multiprocessing
 source =
     backtesting
-    doc/examples
 omit =
 
 [report]

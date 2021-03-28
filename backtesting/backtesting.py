@@ -99,7 +99,7 @@ class Backtest:
         if not isinstance(data, pd.DataFrame):
             raise TypeError('`data` must be a pandas.DataFrame with columns')
         if not isinstance(commission, Number):
-            raise TypeError('`commission` must be a float value, percent of ' 'entry order price')
+            raise TypeError('`commission` must be a float value, percent of entry order price')
 
         data = data.copy(deep=False)
 
@@ -138,7 +138,7 @@ class Backtest:
             data = data.sort_index()
         if not isinstance(data.index, pd.DatetimeIndex):
             warnings.warn(
-                'Data index is not datetime. Assuming simple periods, ' 'but `pd.DateTimeIndex` is advised.',
+                'Data index is not datetime. Assuming simple periods, but `pd.DateTimeIndex` is advised.',
                 stacklevel=2,
             )
 
@@ -342,7 +342,7 @@ class Backtest:
             maximize_key = str(maximize)
             stats = self._results if self._results is not None else self.run()
             if maximize not in stats:
-                raise ValueError('`maximize`, if str, must match a key in pd.Series ' 'result of backtest.run()')
+                raise ValueError('`maximize`, if str, must match a key in pd.Series result of backtest.run()')
 
             def maximize(stats: pd.Series, _key=maximize):
                 return stats[_key]
@@ -356,7 +356,6 @@ class Backtest:
 
         have_constraint = bool(constraint)
         if constraint is None:
-
             def constraint(_):
                 return True
 
@@ -389,7 +388,7 @@ class Backtest:
 
         def _optimize_grid() -> Union[pd.Series, Tuple[pd.Series, pd.Series]]:
             rand = np.random.RandomState(random_state).random
-            grid_frac = 1 if max_tries is None else max_tries if 0 < max_tries <= 1 else max_tries / _grid_size()
+            grid_frac = get_grid_frac(max_tries, _grid_size)
             param_combos = [
                 dict(params)  # back to dict so it pickles
                 for params in (AttrDict(params) for params in product(*(zip(repeat(k), _tuple(v)) for k, v in kwargs.items())))
@@ -584,82 +583,6 @@ class Backtest:
         show_legend=True,
         open_browser=True,
     ):
-        """
-        Plot the progression of the last backtest run.
-
-        If `results` is provided, it should be a particular result
-        `pd.Series` such as returned by
-        `backtesting.backtesting.Backtest.run` or
-        `backtesting.backtesting.Backtest.optimize`, otherwise the last
-        run's results are used.
-
-        `filename` is the path to save the interactive HTML plot to.
-        By default, a strategy/parameter-dependent file is created in the
-        current working directory.
-
-        `plot_width` is the width of the plot in pixels. If None (default),
-        the plot is made to span 100% of browser width. The height is
-        currently non-adjustable.
-
-        If `plot_equity` is `True`, the resulting plot will contain
-        an equity (initial cash plus assets) graph section. This is the same
-        as `plot_return` plus initial 100%.
-
-        If `plot_return` is `True`, the resulting plot will contain
-        a cumulative return graph section. This is the same
-        as `plot_equity` minus initial 100%.
-
-        If `plot_pl` is `True`, the resulting plot will contain
-        a profit/loss (P/L) indicator section.
-
-        If `plot_volume` is `True`, the resulting plot will contain
-        a trade volume section.
-
-        If `plot_drawdown` is `True`, the resulting plot will contain
-        a separate drawdown graph section.
-
-        If `smooth_equity` is `True`, the equity graph will be
-        interpolated between fixed points at trade closing times,
-        unaffected by any interim asset volatility.
-
-        If `relative_equity` is `True`, scale and label equity graph axis
-        with return percent, not absolute cash-equivalent values.
-
-        If `superimpose` is `True`, superimpose larger-timeframe candlesticks
-        over the original candlestick chart. Default downsampling rule is:
-        monthly for daily data, daily for hourly data, hourly for minute data,
-        and minute for (sub-)second data.
-        `superimpose` can also be a valid [Pandas offset string],
-        such as `'5T'` or `'5min'`, in which case this frequency will be
-        used to superimpose.
-        Note, this only works for data with a datetime index.
-
-        If `resample` is `True`, the OHLC data is resampled in a way that
-        makes the upper number of candles for Bokeh to plot limited to 10_000.
-        This may, in situations of overabundant data,
-        improve plot's interactive performance and avoid browser's
-        `Javascript Error: Maximum call stack size exceeded` or similar.
-        Equity & dropdown curves and individual trades data is,
-        likewise, [reasonably _aggregated_][TRADES_AGG].
-        `resample` can also be a [Pandas offset string],
-        such as `'5T'` or `'5min'`, in which case this frequency will be
-        used to resample, overriding above numeric limitation.
-        Note, all this only works for data with a datetime index.
-
-        If `reverse_indicators` is `True`, the indicators below the OHLC chart
-        are plotted in reverse order of declaration.
-
-        [Pandas offset string]: \
-            https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
-
-        [TRADES_AGG]: lib.html#backtesting.lib.TRADES_AGG
-
-        If `show_legend` is `True`, the resulting plot graphs will contain
-        labeled legends.
-
-        If `open_browser` is `True`, the resulting `filename` will be
-        opened in the default web browser.
-        """
         if results is None:
             if self._results is None:
                 raise RuntimeError('First issue `backtest.run()` to obtain results.')
@@ -684,3 +607,12 @@ class Backtest:
             show_legend=show_legend,
             open_browser=open_browser,
         )
+
+
+def get_grid_frac(max_tries, _grid_size):
+    if max_tries is None:
+        return 1
+    elif 0 < max_tries <= 1:
+        return max_tries
+
+    return max_tries / _grid_size()
