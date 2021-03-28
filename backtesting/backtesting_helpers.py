@@ -1,9 +1,11 @@
+import os
 import warnings
 from numbers import Number
-from typing import List, Sequence
+from typing import List, Sequence, Dict
 
 import numpy as np
 import pandas as pd
+from skopt.space import Integer, Real, Categorical
 
 from backtesting.backtesting import Strategy
 from backtesting._util import try_
@@ -113,3 +115,42 @@ def loop_through_data(broker, data, indicator_attrs, start, strategy, self_data)
                 try_(broker.next, exception=_OutOfMoneyError)
 
         return get_perf_metrics(broker, data, strategy, self_data)
+
+
+def construct_dimensions(kwargs):
+    dimensions = []
+    for key, values in kwargs.items():
+        values = np.asarray(values)
+        if values.dtype.kind in 'mM':  # timedelta, datetime64
+            values = values.astype(int)
+
+        if values.dtype.kind in 'iumM':
+            dimensions.append(Integer(low=values.min(), high=values.max(), name=key))
+        elif values.dtype.kind == 'f':
+            dimensions.append(Real(low=values.min(), high=values.max(), name=key))
+        else:
+            dimensions.append(Categorical(values.tolist(), name=key, transform='onehot'))
+    return dimensions
+
+
+def _batch(seq: List[Dict[str, str]]):
+    n = np.clip(len(seq) // (os.cpu_count() or 1), 5, 300)
+    for i in range(0, len(seq), n):
+        yield seq[i : i + n]
+
+
+def def_constraint(_) -> bool:
+    return True
+
+
+def get_constraint_func(constraint):
+    if constraint is None:
+        constraint = def_constraint(None)
+    elif not callable(constraint):
+        raise TypeError(
+            '`constraint` must be a function that accepts a dict '
+            'of strategy parameters and returns a bool whether '
+            'the combination of parameters is admissible or not'
+        )
+
+    return constraint

@@ -8,7 +8,6 @@ from typing import Callable, Dict, List, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
-from skopt.space import Integer, Real, Categorical
 from tqdm.auto import tqdm as _tqdm
 
 from backtesting.broker import Broker
@@ -22,7 +21,7 @@ from .backtesting_helpers import (
     _tuple,
     validate_and_get_data,
     validate_instance_types,
-    loop_through_data,
+    loop_through_data, construct_dimensions,
 )
 
 
@@ -324,17 +323,3 @@ class Backtest:
         )
 
 
-def construct_dimensions(kwargs):
-    dimensions = []
-    for key, values in kwargs.items():
-        values = np.asarray(values)
-        if values.dtype.kind in 'mM':  # timedelta, datetime64
-            values = values.astype(int)
-
-        if values.dtype.kind in 'iumM':
-            dimensions.append(Integer(low=values.min(), high=values.max(), name=key))
-        elif values.dtype.kind == 'f':
-            dimensions.append(Real(low=values.min(), high=values.max(), name=key))
-        else:
-            dimensions.append(Categorical(values.tolist(), name=key, transform='onehot'))
-    return dimensions
