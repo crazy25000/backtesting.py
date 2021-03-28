@@ -17,7 +17,7 @@ from typing import Callable, Dict, List, Sequence, Tuple, Type, Union
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm as _tqdm
-
+from skopt.space import Integer, Real, Categorical
 from backtesting.broker import _OutOfMoneyError, Broker
 from backtesting.strategy import Strategy
 from ._plotting import plot
@@ -39,8 +39,7 @@ class Backtest:
         exclusive_orders=False,
     ):
         self.validate_instance_types(commission, data, strategy)
-        self.validate_and_set_data(cash, data)
-
+        self._data = self.validate_and_set_data(cash, data)
         self._broker = partial(
             Broker,
             cash=cash,
@@ -101,7 +100,7 @@ class Backtest:
                 'Data index is not datetime. Assuming simple periods, but `pd.DateTimeIndex` is advised.',
                 stacklevel=2,
             )
-        self._data = data
+        return data
 
     def run(self, **kwargs) -> pd.Series:
         data = _Data(self._data.copy(deep=False))
@@ -136,9 +135,7 @@ class Backtest:
                     try_(broker.next, exception=_OutOfMoneyError)
 
             data._set_length(len(self._data))
-
             equity = pd.Series(broker._equity).bfill().fillna(broker._cash).values
-
             self._results = compute_stats(trades=broker.closed_trades, equity=equity, ohlc_data=self._data, risk_free_rate=0.0)
             self._results.loc['_strategy'] = strategy
 
@@ -168,7 +165,6 @@ class Backtest:
 
             def maximize(stats: pd.Series, _key=maximize):
                 return stats[_key]
-
         elif not callable(maximize):
             raise TypeError(
                 '`maximize` must be str (a field of backtest.run() result '
@@ -180,7 +176,6 @@ class Backtest:
         if constraint is None:
             def constraint(_):
                 return True
-
         elif not callable(constraint):
             raise TypeError(
                 '`constraint` must be a function that accepts a dict '
@@ -195,7 +190,7 @@ class Backtest:
             if len(_tuple(v)) == 0:
                 raise ValueError(f"Optimization variable '{k}' is passed no " f'optimization values: {k}={v}')
 
-        def _grid_size():
+        def _grid_size() -> np.int64:
             size = np.prod([len(_tuple(v)) for v in kwargs.values()])
             if size < 10_000 and have_constraint:
                 size = sum(1 for p in product(*(zip(repeat(k), _tuple(v)) for k, v in kwargs.items())) if constraint(AttrDict(p)))
@@ -227,22 +222,15 @@ class Backtest:
                 ),
             )
 
-            def _batch(seq):
+            def _batch(seq: List[Dict[str, str]]):
                 n = np.clip(len(seq) // (os.cpu_count() or 1), 5, 300)
                 for i in range(0, len(seq), n):
                     yield seq[i : i + n]
 
-            # Save necessary objects into "global" state; pass into concurrent executor
-            # (and thus pickle) nothing but two numbers; receive nothing but numbers.
-            # With start method "fork", children processes will inherit parent address space
-            # in a copy-on-write manner, achieving better performance/RAM benefit.
             backtest_uuid = np.random.random()
             param_batches = list(_batch(param_combos))
             Backtest._mp_backtests[backtest_uuid] = (self, param_batches, maximize)  # type: ignore
             try:
-                # If multiprocessing start method is 'fork' (i.e. on POSIX), use
-                # a pool of processes to compute results in parallel.
-                # Otherwise (i.e. on Windos), sequential computation will be "faster".
                 if mp.get_start_method(allow_none=False) == 'fork':
                     with ProcessPoolExecutor() as executor:
                         futures = [executor.submit(Backtest._mp_task, backtest_uuid, i) for i in range(len(param_batches))]
@@ -263,8 +251,6 @@ class Backtest:
             best_params = heatmap.idxmax()
 
             if pd.isnull(best_params):
-                # No trade was made in any of the runs. Just make a random
-                # run so we get some, if empty, results
                 stats = self.run(**param_combos[0])
             else:
                 stats = self.run(**dict(zip(heatmap.index.names, best_params)))
@@ -276,7 +262,7 @@ class Backtest:
         def _optimize_skopt() -> Union[pd.Series, Tuple[pd.Series, pd.Series], Tuple[pd.Series, pd.Series, dict]]:
             try:
                 from skopt import forest_minimize
-                from skopt.space import Integer, Real, Categorical
+
                 from skopt.utils import use_named_args
                 from skopt.callbacks import DeltaXStopper
                 from skopt.learning import ExtraTreesRegressor
@@ -285,28 +271,9 @@ class Backtest:
 
             nonlocal max_tries
             max_tries = get_max_tries(max_tries, _grid_size)
+            dimensions = self.construct_dimensions(kwargs)
 
-            dimensions = []
-            for key, values in kwargs.items():
-                values = np.asarray(values)
-                if values.dtype.kind in 'mM':  # timedelta, datetime64
-                    # these dtypes are unsupported in skopt, so convert to raw int
-                    # TODO: save dtype and convert back later
-                    values = values.astype(int)
-
-                if values.dtype.kind in 'iumM':
-                    dimensions.append(Integer(low=values.min(), high=values.max(), name=key))
-                elif values.dtype.kind == 'f':
-                    dimensions.append(Real(low=values.min(), high=values.max(), name=key))
-                else:
-                    dimensions.append(Categorical(values.tolist(), name=key, transform='onehot'))
-
-            # Avoid recomputing re-evaluations:
-            # "The objective has been evaluated at this point before."
-            # https://github.com/scikit-optimize/scikit-optimize/issues/302
             memoized_run = lru_cache()(lambda tup: self.run(**dict(tup)))
-
-            # np.inf/np.nan breaks sklearn, np.finfo(float).max breaks skopt.plots.plot_objective
             INVALID = 1e300
             progress = _tqdm(dimensions, total=max_tries, desc='Backtest.optimize', leave=False)
 
@@ -369,6 +336,21 @@ class Backtest:
         else:
             raise ValueError(f"Method should be 'grid' or 'skopt', not {method!r}")
         return output
+
+    def construct_dimensions(self, kwargs):
+        dimensions = []
+        for key, values in kwargs.items():
+            values = np.asarray(values)
+            if values.dtype.kind in 'mM':  # timedelta, datetime64
+                values = values.astype(int)
+
+            if values.dtype.kind in 'iumM':
+                dimensions.append(Integer(low=values.min(), high=values.max(), name=key))
+            elif values.dtype.kind == 'f':
+                dimensions.append(Real(low=values.min(), high=values.max(), name=key))
+            else:
+                dimensions.append(Categorical(values.tolist(), name=key, transform='onehot'))
+        return dimensions
 
     def get_stats_for_maximized(self, maximize):
         if isinstance(maximize, str):
