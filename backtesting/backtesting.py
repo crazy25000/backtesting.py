@@ -21,7 +21,8 @@ from .backtesting_helpers import (
     _tuple,
     validate_and_get_data,
     validate_instance_types,
-    loop_through_data, construct_dimensions,
+    loop_through_data,
+    construct_dimensions,
 )
 
 
@@ -67,21 +68,9 @@ class Backtest:
         )
 
         self._results = loop_through_data(broker, data, indicator_attrs, start, strategy, self._data)
-
         return self._results
 
-    def optimize(
-        self,
-        *,
-        maximize: Union[str, Callable[[pd.Series], float]] = 'SQN',
-        method: str = 'grid',
-        max_tries: Union[int, float] = None,
-        constraint: Callable[[dict], bool] = None,
-        return_heatmap: bool = False,
-        return_optimization: bool = False,
-        random_state: int = None,
-        **kwargs,
-    ) -> Union[pd.Series, Tuple[pd.Series, pd.Series], Tuple[pd.Series, pd.Series, dict]]:
+    def optimize(self, *, maximize: Union[str, Callable[[pd.Series], float]] = 'SQN', method: str = 'grid', max_tries: Union[int, float] = None, constraint: Callable[[dict], bool] = None, return_heatmap: bool = False, return_optimization: bool = False, random_state: int = None, **kwargs,) -> Union[pd.Series, Tuple[pd.Series, pd.Series], Tuple[pd.Series, pd.Series, dict]]:
         if not kwargs:
             raise ValueError('Need some strategy parameters to optimize')
 

@@ -117,7 +117,7 @@ def loop_through_data(broker, data, indicator_attrs, start, strategy, self_data)
         return get_perf_metrics(broker, data, strategy, self_data)
 
 
-def construct_dimensions(kwargs):
+def construct_dimensions(kwargs) -> list:
     dimensions = []
     for key, values in kwargs.items():
         values = np.asarray(values)
