@@ -204,9 +204,9 @@ class Backtest:
 
             nonlocal max_tries
             max_tries = get_max_tries(max_tries, _grid_size)
-            dimensions = self.construct_dimensions(kwargs)
-
+            dimensions = construct_dimensions(kwargs)
             memoized_run = lru_cache()(lambda tup: self.run(**dict(tup)))
+
             INVALID = 1e300
             progress = _tqdm(dimensions, total=max_tries, desc='Backtest.optimize', leave=False)
 
@@ -270,21 +270,6 @@ class Backtest:
             raise ValueError(f"Method should be 'grid' or 'skopt', not {method!r}")
         return output
 
-    def construct_dimensions(self, kwargs):
-        dimensions = []
-        for key, values in kwargs.items():
-            values = np.asarray(values)
-            if values.dtype.kind in 'mM':  # timedelta, datetime64
-                values = values.astype(int)
-
-            if values.dtype.kind in 'iumM':
-                dimensions.append(Integer(low=values.min(), high=values.max(), name=key))
-            elif values.dtype.kind == 'f':
-                dimensions.append(Real(low=values.min(), high=values.max(), name=key))
-            else:
-                dimensions.append(Categorical(values.tolist(), name=key, transform='onehot'))
-        return dimensions
-
     @staticmethod
     def _mp_task(backtest_uuid, batch_index):
         bt, param_batches, maximize_func = Backtest._mp_backtests[backtest_uuid]
@@ -337,3 +322,19 @@ class Backtest:
             show_legend=show_legend,
             open_browser=open_browser,
         )
+
+
+def construct_dimensions(kwargs):
+    dimensions = []
+    for key, values in kwargs.items():
+        values = np.asarray(values)
+        if values.dtype.kind in 'mM':  # timedelta, datetime64
+            values = values.astype(int)
+
+        if values.dtype.kind in 'iumM':
+            dimensions.append(Integer(low=values.min(), high=values.max(), name=key))
+        elif values.dtype.kind == 'f':
+            dimensions.append(Real(low=values.min(), high=values.max(), name=key))
+        else:
+            dimensions.append(Categorical(values.tolist(), name=key, transform='onehot'))
+    return dimensions
