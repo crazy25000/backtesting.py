@@ -2,6 +2,7 @@ from typing import List
 
 import numpy as np
 import pandas as pd
+from backtesting.trade import Trade
 
 from ._util import _data_period
 
@@ -31,7 +32,7 @@ def geometric_mean(returns: pd.Series) -> float:
 
 
 def compute_stats(
-        trades: List[pd.DataFrame],
+        trades: List[Trade],
         equity: np.ndarray,
         ohlc_data: pd.DataFrame,
         risk_free_rate: float = 0) -> pd.Series:

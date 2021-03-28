@@ -5,9 +5,8 @@ import time
 import unittest
 import warnings
 from contextlib import contextmanager
-from glob import glob
-from runpy import run_path
-from tempfile import NamedTemporaryFile, gettempdir
+
+from tempfile import NamedTemporaryFile
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -922,24 +921,6 @@ class TestUtil(TestCase):
                 assert self.data.df['new_key'].equals(pd.Series(self.data.new_key, index=index))
 
         Backtest(GOOG.iloc[:20], S).run()
-
-
-class TestDocs(TestCase):
-    DOCS_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'doc')
-
-    @unittest.skipUnless(os.path.isdir(DOCS_DIR), "docs dir doesn't exist")
-    def test_examples(self):
-        examples = glob(os.path.join(self.DOCS_DIR, 'examples', '*.py'))
-        self.assertGreaterEqual(len(examples), 4)
-        with chdir(gettempdir()):
-            for file in examples:
-                with self.subTest(example=os.path.basename(file)):
-                    run_path(file)
-
-    def test_backtest_run_docstring_contains_stats_keys(self):
-        stats = Backtest(SHORT_DATA, SmaCross).run()
-        for key in stats.index:
-            self.assertIn(key, Backtest.run.__doc__)
 
 
 if __name__ == '__main__':
