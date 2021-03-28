@@ -8,6 +8,10 @@ from typing import Callable, Dict, List, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
+from skopt import forest_minimize
+from skopt.callbacks import DeltaXStopper
+from skopt.learning import ExtraTreesRegressor
+from skopt.utils import use_named_args
 from tqdm.auto import tqdm as _tqdm
 
 from backtesting.broker import Broker
@@ -15,14 +19,15 @@ from backtesting.strategy import Strategy
 from ._plotting import plot
 from ._util import _Indicator, _Data
 from .backtesting_helpers import (
-    get_grid_frac,
-    get_max_tries,
     AttrDict,
     _tuple,
+    construct_dimensions,
+    get_constraint_func,
+    get_grid_frac,
+    get_max_tries,
+    loop_through_data,
     validate_and_get_data,
     validate_instance_types,
-    loop_through_data,
-    construct_dimensions,
 )
 
 
@@ -83,7 +88,6 @@ class Backtest:
 
             def maximize(stats: pd.Series, _key=maximize):
                 return stats[_key]
-
         elif not callable(maximize):
             raise TypeError(
                 '`maximize` must be str (a field of backtest.run() result '
@@ -93,10 +97,8 @@ class Backtest:
 
         have_constraint = bool(constraint)
         if constraint is None:
-
             def constraint(_):
                 return True
-
         elif not callable(constraint):
             raise TypeError(
                 '`constraint` must be a function that accepts a dict '
@@ -181,15 +183,6 @@ class Backtest:
             return stats
 
         def _optimize_skopt() -> Union[pd.Series, Tuple[pd.Series, pd.Series], Tuple[pd.Series, pd.Series, dict]]:
-            try:
-                from skopt import forest_minimize
-
-                from skopt.utils import use_named_args
-                from skopt.callbacks import DeltaXStopper
-                from skopt.learning import ExtraTreesRegressor
-            except ImportError:
-                raise ImportError("Need package 'scikit-optimize' for method='skopt'. " 'pip install scikit-optimize')
-
             nonlocal max_tries
             max_tries = get_max_tries(max_tries, _grid_size)
             dimensions = construct_dimensions(kwargs)
