@@ -21,21 +21,11 @@ from tqdm.auto import tqdm as _tqdm
 from backtesting.broker import _OutOfMoneyError, Broker
 from backtesting.strategy import Strategy
 from ._plotting import plot
-from ._util import _Indicator, _Data, _data_period, try_
+from ._util import _Indicator, _Data, try_
 from .metrics import compute_stats
 
 
 class Backtest:
-    """
-    Backtest a particular (parameterized) strategy
-    on particular data.
-
-    Upon initialization, call method
-    `backtesting.backtesting.Backtest.run` to run a backtest
-    instance, or `backtesting.backtesting.Backtest.optimize` to
-    optimize it.
-    """
-
     def __init__(
         self,
         data: pd.DataFrame,
@@ -94,6 +84,23 @@ class Backtest:
         [FIFO]: https://www.investopedia.com/terms/n/nfa-compliance-rule-2-43b.asp
         """
 
+        self.validate_instance_types(commission, data, strategy)
+        self.validate_and_set_data(cash, data)
+
+        self._broker = partial(
+            Broker,
+            cash=cash,
+            commission=commission,
+            margin=margin,
+            trade_on_close=trade_on_close,
+            hedging=hedging,
+            exclusive_orders=exclusive_orders,
+            index=self._data.index,
+        )
+        self._strategy = strategy
+        self._results: Union[pd.Series, None] = None
+
+    def validate_instance_types(self, commission, data, strategy):
         if not (isinstance(strategy, type) and issubclass(strategy, Strategy)):
             raise TypeError('`strategy` must be a Strategy sub-type')
         if not isinstance(data, pd.DataFrame):
@@ -101,25 +108,24 @@ class Backtest:
         if not isinstance(commission, Number):
             raise TypeError('`commission` must be a float value, percent of entry order price')
 
+    def validate_and_set_data(self, cash, data):
         data = data.copy(deep=False)
-
         # Numeric index with most large numbers
         largest_numeric_index = data.index.is_numeric() and (data.index > pd.Timestamp('1975').timestamp()).mean() > 0.8
-
         # Convert index to datetime index
-        if not isinstance(data.index, pd.DatetimeIndex) and not isinstance(data.index, pd.RangeIndex) and largest_numeric_index:
+        if not isinstance(data.index, pd.DatetimeIndex) and not isinstance(data.index,
+                                                                           pd.RangeIndex) and largest_numeric_index:
             try:
                 data.index = pd.to_datetime(data.index, infer_datetime_format=True)
             except ValueError:
                 pass
-
         if 'Volume' not in data:
             data['Volume'] = np.nan
-
         if len(data) == 0:
             raise ValueError('OHLC `data` is empty')
         if len(data.columns.intersection({'Open', 'High', 'Low', 'Close', 'Volume'})) != 5:
-            raise ValueError('`data` must be a pandas.DataFrame with columns ' "'Open', 'High', 'Low', 'Close', and (optionally) 'Volume'")
+            raise ValueError(
+                '`data` must be a pandas.DataFrame with columns ' "'Open', 'High', 'Low', 'Close', and (optionally) 'Volume'")
         if data[['Open', 'High', 'Low', 'Close']].isnull().values.any():
             raise ValueError(
                 'Some OHLC values are missing (NaN). '
@@ -141,112 +147,40 @@ class Backtest:
                 'Data index is not datetime. Assuming simple periods, but `pd.DateTimeIndex` is advised.',
                 stacklevel=2,
             )
-
-        self._data: pd.DataFrame = data
-        self._broker = partial(
-            Broker,
-            cash=cash,
-            commission=commission,
-            margin=margin,
-            trade_on_close=trade_on_close,
-            hedging=hedging,
-            exclusive_orders=exclusive_orders,
-            index=data.index,
-        )
-        self._strategy = strategy
-        self._results: Union[pd.Series, None] = None
+        self._data = data
 
     def run(self, **kwargs) -> pd.Series:
-        # from pyinstrument import Profiler
-        # profiler = Profiler(interval=0.0001)
-        # profiler.start()
-
-        """
-        Run the backtest. Returns `pd.Series` with results and statistics.
-
-        Keyword arguments are interpreted as strategy parameters.
-
-            >>> Backtest(GOOG, SmaCross).run()
-            Start                     2004-08-19 00:00:00
-            End                       2013-03-01 00:00:00
-            Duration                   3116 days 00:00:00
-            Exposure Time [%]                     93.9944
-            Equity Final [$]                      51959.9
-            Equity Peak [$]                       75787.4
-            Return [%]                            419.599
-            Buy & Hold Return [%]                 703.458
-            Return (Ann.) [%]                      21.328
-            Volatility (Ann.) [%]                 36.5383
-            Sharpe Ratio                         0.583718
-            Sortino Ratio                         1.09239
-            Calmar Ratio                         0.444518
-            Max. Drawdown [%]                    -47.9801
-            Avg. Drawdown [%]                    -5.92585
-            Max. Drawdown Duration      584 days 00:00:00
-            Avg. Drawdown Duration       41 days 00:00:00
-            # Trades                                   65
-            Win Rate [%]                          46.1538
-            Best Trade [%]                         53.596
-            Worst Trade [%]                      -18.3989
-            Avg. Trade [%]                        2.35371
-            Max. Trade Duration         183 days 00:00:00
-            Avg. Trade Duration          46 days 00:00:00
-            Profit Factor                         2.08802
-            Expectancy [%]                        8.79171
-            SQN                                  0.916893
-            _strategy                            SmaCross
-            _equity_curve                           Eq...
-            _trades                       Size  EntryB...
-            dtype: object
-        """
         data = _Data(self._data.copy(deep=False))
         broker: Broker = self._broker(data=data)
         strategy: Strategy = self._strategy(broker, data, kwargs)
 
         strategy.init()
-        data._update()  # Strategy.init might have changed/added to data.df
-
-        # Indicators used in Strategy.next()
+        data._update()
         indicator_attrs = {attr: indicator for attr, indicator in strategy.__dict__.items() if isinstance(indicator, _Indicator)}.items()
-
-        # Skip first few candles where indicators are still "warming up"
-        # +1 to have at least two entries available
         start = 1 + max(
             (np.isnan(indicator.astype(float)).argmin(axis=-1).max() for _, indicator in indicator_attrs),
             default=0,
         )
 
-        # Disable "invalid value encountered in ..." warnings. Comparison
-        # np.nan >= 3 is not invalid; it's False.
         with np.errstate(invalid='ignore'):
-
             for i in range(start, len(self._data)):
-                # Prepare data and indicators for `next` call
                 data._set_length(i + 1)
                 for attr, indicator in indicator_attrs:
-                    # Slice indicator on the last dimension (case of 2d indicator)
                     setattr(strategy, attr, indicator[..., : i + 1])
 
-                # Handle orders processing and broker stuff
                 try:
                     broker.next()
                 except _OutOfMoneyError:
                     break
 
-                # Next tick, a moment before bar close
                 strategy.next()
             else:
-                # Close any remaining open trades so they produce some stats
                 for trade in broker.trades:
                     trade.close()
 
-                # Re-run broker one last time to handle orders placed in the last strategy
-                # iteration. Use the same OHLC values as in the last broker iteration.
                 if start < len(self._data):
                     try_(broker.next, exception=_OutOfMoneyError)
 
-            # Set data back to full length
-            # for future `indicator._opts['data'].index` calls to work
             data._set_length(len(self._data))
 
             equity = pd.Series(broker._equity).bfill().fillna(broker._cash).values
@@ -254,8 +188,6 @@ class Backtest:
             self._results = compute_stats(trades=broker.closed_trades, equity=equity, ohlc_data=self._data, risk_free_rate=0.0)
             self._results.loc['_strategy'] = strategy
 
-        # profiler.stop()
-        # self._results['profiler'] = profiler
         return self._results
 
     def optimize(
@@ -270,70 +202,6 @@ class Backtest:
         random_state: int = None,
         **kwargs,
     ) -> Union[pd.Series, Tuple[pd.Series, pd.Series], Tuple[pd.Series, pd.Series, dict]]:
-        """
-        Optimize strategy parameters to an optimal combination.
-        Returns result `pd.Series` of the best run.
-
-        `maximize` is a string key from the
-        `backtesting.backtesting.Backtest.run`-returned results series,
-        or a function that accepts this series object and returns a number;
-        the higher the better. By default, the method maximizes
-        Van Tharp's [System Quality Number](https://google.com/search?q=System+Quality+Number).
-
-        `method` is the optimization method. Currently two methods are supported:
-
-        * `"grid"` which does an exhaustive (or randomized) search over the
-          cartesian product of parameter combinations, and
-        * `"skopt"` which finds close-to-optimal strategy parameters using
-          [model-based optimization], making at most `max_tries` evaluations.
-
-        [model-based optimization]: \
-            https://scikit-optimize.github.io/stable/auto_examples/bayesian-optimization.html
-
-        `max_tries` is the maximal number of strategy runs to perform.
-        If `method="grid"`, this results in randomized grid search.
-        If `max_tries` is a floating value between (0, 1], this sets the
-        number of runs to approximately that fraction of full grid space.
-        Alternatively, if integer, it denotes the absolute maximum number
-        of evaluations. If unspecified (default), grid search is exhaustive,
-        whereas for `method="skopt"`, `max_tries` is set to 200.
-
-        `constraint` is a function that accepts a dict-like object of
-        parameters (with values) and returns `True` when the combination
-        is admissible to test with. By default, any parameters combination
-        is considered admissible.
-
-        If `return_heatmap` is `True`, besides returning the result
-        series, an additional `pd.Series` is returned with a multiindex
-        of all admissible parameter combinations, which can be further
-        inspected or projected onto 2D to plot a heatmap
-        (see `backtesting.lib.plot_heatmaps()`).
-
-        If `return_optimization` is True and `method = 'skopt'`,
-        in addition to result series (and maybe heatmap), return raw
-        [`scipy.optimize.OptimizeResult`][OptimizeResult] for further
-        inspection, e.g. with [scikit-optimize]\
-        [plotting tools].
-
-        [OptimizeResult]: \
-            https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html
-        [scikit-optimize]: https://scikit-optimize.github.io
-        [plotting tools]: https://scikit-optimize.github.io/stable/modules/plots.html
-
-        If you want reproducible optimization results, set `random_state`
-        to a fixed integer or a `numpy.random.RandomState` object.
-
-        Additional keyword arguments represent strategy arguments with
-        list-like collections of possible values. For example, the following
-        code finds and returns the "best" of the 7 admissible (of the
-        9 possible) parameter combinations:
-
-            backtest.optimize(sma1=[5, 10, 15], sma2=[10, 20, 40],
-                              constraint=lambda p: p.sma1 < p.sma2)
-
-        .. TODO::
-            Improve multiprocessing/parallel execution on Windos with start method 'spawn'.
-        """
         if not kwargs:
             raise ValueError('Need some strategy parameters to optimize')
 
@@ -369,16 +237,9 @@ class Backtest:
         if return_optimization and method != 'skopt':
             raise ValueError("return_optimization=True only valid if method='skopt'")
 
-        def _tuple(x):
-            return x if isinstance(x, Sequence) and not isinstance(x, str) else (x,)
-
         for k, v in kwargs.items():
             if len(_tuple(v)) == 0:
                 raise ValueError(f"Optimization variable '{k}' is passed no " f'optimization values: {k}={v}')
-
-        class AttrDict(dict):
-            def __getattr__(self, item):
-                return self[item]
 
         def _grid_size():
             size = np.prod([len(_tuple(v)) for v in kwargs.values()])
@@ -469,7 +330,7 @@ class Backtest:
                 raise ImportError("Need package 'scikit-optimize' for method='skopt'. " 'pip install scikit-optimize')
 
             nonlocal max_tries
-            max_tries = 200 if max_tries is None else max(1, int(max_tries * _grid_size())) if 0 < max_tries <= 1 else max_tries
+            max_tries = get_max_tries(max_tries, _grid_size)
 
             dimensions = []
             for key, values in kwargs.items():
@@ -555,6 +416,23 @@ class Backtest:
             raise ValueError(f"Method should be 'grid' or 'skopt', not {method!r}")
         return output
 
+    def get_stats_for_maximized(self, maximize):
+        if isinstance(maximize, str):
+            self.maximize_key = str(maximize)
+            stats = self._results if self._results is not None else self.run()
+            if maximize not in stats:
+                raise ValueError('`maximize`, if str, must match a key in pd.Series result of backtest.run()')
+
+            def maximize(stats: pd.Series, _key=maximize):
+                return stats[_key]
+
+        elif not callable(maximize):
+            raise TypeError(
+                '`maximize` must be str (a field of backtest.run() result '
+                'Series) or a function that accepts result Series '
+                'and returns a number; the higher the better'
+            )
+
     @staticmethod
     def _mp_task(backtest_uuid, batch_index):
         bt, param_batches, maximize_func = Backtest._mp_backtests[backtest_uuid]
@@ -564,25 +442,7 @@ class Backtest:
 
     _mp_backtests: Dict[float, Tuple['Backtest', List, Callable]] = {}
 
-    def plot(
-        self,
-        *,
-        results: pd.Series = None,
-        filename=None,
-        plot_width=None,
-        plot_equity=True,
-        plot_return=False,
-        plot_pl=True,
-        plot_volume=True,
-        plot_drawdown=False,
-        smooth_equity=False,
-        relative_equity=True,
-        superimpose: Union[bool, str] = True,
-        resample=True,
-        reverse_indicators=False,
-        show_legend=True,
-        open_browser=True,
-    ):
+    def plot(self, *, results: pd.Series = None, filename=None, plot_width=None, plot_equity=True, plot_return=False, plot_pl=True, plot_volume=True, plot_drawdown=False, smooth_equity=False, relative_equity=True, superimpose: Union[bool, str] = True, resample=True, reverse_indicators=False, show_legend=True, open_browser=True,):
         if results is None:
             if self._results is None:
                 raise RuntimeError('First issue `backtest.run()` to obtain results.')
@@ -616,3 +476,28 @@ def get_grid_frac(max_tries, _grid_size):
         return max_tries
 
     return max_tries / _grid_size()
+
+
+def get_max_tries(max_tries, _grid_size):
+    if max_tries is None:
+        return 200
+    elif 0 < max_tries <= 1:
+        return max(1, int(max_tries * _grid_size()))
+
+    return max_tries
+
+
+class AttrDict(dict):
+    def __getattr__(self, item):
+        return self[item]
+
+
+def grid_size(kwargs, _tuple, constraint, have_constraint):
+    size = np.prod([len(_tuple(v)) for v in kwargs.values()])
+    if size < 10_000 and have_constraint:
+        size = sum(1 for p in product(*(zip(repeat(k), _tuple(v)) for k, v in kwargs.items())) if constraint(AttrDict(p)))
+    return size
+
+
+def _tuple(x: List[str]) -> List[str]:
+    return x if isinstance(x, Sequence) and not isinstance(x, str) else (x,)
