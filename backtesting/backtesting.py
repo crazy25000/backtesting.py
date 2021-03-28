@@ -38,52 +38,6 @@ class Backtest:
         hedging=False,
         exclusive_orders=False,
     ):
-        """
-        Initialize a backtest. Requires data and a strategy to test.
-
-        `data` is a `pd.DataFrame` with columns:
-        `Open`, `High`, `Low`, `Close`, and (optionally) `Volume`.
-        If any columns are missing, set them to what you have available,
-        e.g.
-
-            df['Open'] = df['High'] = df['Low'] = df['Close']
-
-        The passed data frame can contain additional columns that
-        can be used by the strategy (e.g. sentiment info).
-        DataFrame index can be either a datetime index (timestamps)
-        or a monotonic range index (i.e. a sequence of periods).
-
-        `strategy` is a `backtesting.backtesting.Strategy`
-        _subclass_ (not an instance).
-
-        `cash` is the initial cash to start with.
-
-        `commission` is the commission ratio. E.g. if your broker's commission
-        is 1% of trade value, set commission to `0.01`. Note, if you wish to
-        account for bid-ask spread, you can approximate doing so by increasing
-        the commission, e.g. set it to `0.0002` for commission-less forex
-        trading where the average spread is roughly 0.2‰ of asking price.
-
-        `margin` is the required margin (ratio) of a leveraged account.
-        No difference is made between initial and maintenance margins.
-        To run the backtest using e.g. 50:1 leverge that your broker allows,
-        set margin to `0.02` (1 / leverage).
-
-        If `trade_on_close` is `True`, market orders will be filled
-        with respect to the current bar's closing price instead of the
-        next bar's open.
-
-        If `hedging` is `True`, allow trades in both directions simultaneously.
-        If `False`, the opposite-facing orders first close existing trades in
-        a [FIFO] manner.
-
-        If `exclusive_orders` is `True`, each new order auto-closes the previous
-        trade/position, making at most a single trade (long or short) in effect
-        at each time.
-
-        [FIFO]: https://www.investopedia.com/terms/n/nfa-compliance-rule-2-43b.asp
-        """
-
         self.validate_instance_types(commission, data, strategy)
         self.validate_and_set_data(cash, data)
 

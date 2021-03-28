@@ -49,5 +49,5 @@ if __name__ == '__main__':
             ],
         },
         test_suite='backtesting.test',
-        python_requires='>=3.8'
+        python_requires='>=3.8',
     )

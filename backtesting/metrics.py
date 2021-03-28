@@ -18,7 +18,7 @@ def compute_drawdown_duration_peaks(dd: pd.Series):
         return (dd.replace(0, np.nan),) * 2
 
     df['duration'] = df['iloc'].map(dd.index.__getitem__) - df['prev'].map(dd.index.__getitem__)
-    df['peak_dd'] = df.apply(lambda row: dd.iloc[row['prev']:row['iloc'] + 1].max(), axis=1)
+    df['peak_dd'] = df.apply(lambda row: dd.iloc[row['prev'] : row['iloc'] + 1].max(), axis=1)
     df = df.reindex(dd.index)
     return df['duration'], df['peak_dd']
 
@@ -31,32 +31,26 @@ def geometric_mean(returns: pd.Series) -> float:
     return np.exp(np.log(returns).sum() / (len(returns) or np.nan)) - 1
 
 
-def compute_stats(
-        trades: List[Trade],
-        equity: np.ndarray,
-        ohlc_data: pd.DataFrame,
-        risk_free_rate: float = 0) -> pd.Series:
+def compute_stats(trades: List[Trade], equity: np.ndarray, ohlc_data: pd.DataFrame, risk_free_rate: float = 0) -> pd.Series:
     index = ohlc_data.index
     dd = 1 - equity / np.maximum.accumulate(equity)
     dd_dur, dd_peaks = compute_drawdown_duration_peaks(pd.Series(dd, index=index))
 
-    equity_df = pd.DataFrame({
-        'Equity': equity,
-        'DrawdownPct': dd,
-        'DrawdownDuration': dd_dur},
-        index=index)
+    equity_df = pd.DataFrame({'Equity': equity, 'DrawdownPct': dd, 'DrawdownDuration': dd_dur}, index=index)
 
-    trades_df = pd.DataFrame({
-        'Size': [t.size for t in trades],
-        'EntryBar': [t.entry_bar for t in trades],
-        'ExitBar': [t.exit_bar for t in trades],
-        'EntryPrice': [t.entry_price for t in trades],
-        'ExitPrice': [t.exit_price for t in trades],
-        'PnL': [t.pl for t in trades],
-        'ReturnPct': [t.pl_pct for t in trades],
-        'EntryTime': [t.entry_time for t in trades],
-        'ExitTime': [t.exit_time for t in trades],
-    })
+    trades_df = pd.DataFrame(
+        {
+            'Size': [t.size for t in trades],
+            'EntryBar': [t.entry_bar for t in trades],
+            'ExitBar': [t.exit_bar for t in trades],
+            'EntryPrice': [t.entry_price for t in trades],
+            'ExitPrice': [t.exit_price for t in trades],
+            'PnL': [t.pl for t in trades],
+            'ReturnPct': [t.pl_pct for t in trades],
+            'EntryTime': [t.entry_time for t in trades],
+            'ExitTime': [t.exit_time for t in trades],
+        }
+    )
     trades_df['Duration'] = trades_df['ExitTime'] - trades_df['EntryTime']
 
     pl = trades_df['PnL']
@@ -76,7 +70,7 @@ def compute_stats(
 
     have_position = np.repeat(0, len(index))
     for t in trades:
-        have_position[t.entry_bar:t.exit_bar + 1] = 1
+        have_position[t.entry_bar : t.exit_bar + 1] = 1
 
     s.loc['Exposure Time [%]'] = have_position.mean() * 100  # In "n bars" time, not index time
     s.loc['Equity Final [$]'] = equity[-1]
@@ -91,9 +85,7 @@ def compute_stats(
     if isinstance(index, pd.DatetimeIndex):
         day_returns = equity_df['Equity'].resample('D').last().dropna().pct_change()
         gmean_day_return = geometric_mean(day_returns)
-        annual_trading_days = float(
-            365 if index.dayofweek.to_series().between(5, 6).mean() > 2 / 7 * .6 else
-            252)
+        annual_trading_days = float(365 if index.dayofweek.to_series().between(5, 6).mean() > 2 / 7 * 0.6 else 252)
 
     # Annualized return and risk metrics are computed based on the (mostly correct)
     # assumption that the returns are compounded. See: https://dx.doi.org/10.2139/ssrn.3054517
@@ -101,21 +93,25 @@ def compute_stats(
     # our risk doesn't; they use the simpler approach below.
     annualized_return = (1 + gmean_day_return) ** annual_trading_days - 1
     s.loc['Return (Ann.) [%]'] = annualized_return * 100
-    s.loc['Volatility (Ann.) [%]'] = np.sqrt(
-        (day_returns.var(ddof=int(bool(day_returns.shape))) + (1 + gmean_day_return) ** 2) ** annual_trading_days - (
-                1 + gmean_day_return) ** (2 * annual_trading_days)) * 100  # noqa: E501
+    s.loc['Volatility (Ann.) [%]'] = (
+        np.sqrt(
+            (day_returns.var(ddof=int(bool(day_returns.shape))) + (1 + gmean_day_return) ** 2) ** annual_trading_days
+            - (1 + gmean_day_return) ** (2 * annual_trading_days)
+        )
+        * 100
+    )  # noqa: E501
     # s.loc['Return (Ann.) [%]'] = gmean_day_return * annual_trading_days * 100
     # s.loc['Risk (Ann.) [%]'] = day_returns.std(ddof=1) * np.sqrt(annual_trading_days) * 100
 
     # Our Sharpe mismatches `empyrical.sharpe_ratio()` because they use arithmetic mean return
     # and simple standard deviation
     s.loc['Sharpe Ratio'] = np.clip(
-        (s.loc['Return (Ann.) [%]'] - risk_free_rate) / (s.loc['Volatility (Ann.) [%]'] or np.nan), 0,
-        np.inf)  # noqa: E501
+        (s.loc['Return (Ann.) [%]'] - risk_free_rate) / (s.loc['Volatility (Ann.) [%]'] or np.nan), 0, np.inf
+    )  # noqa: E501
     # Our Sortino mismatches `empyrical.sortino_ratio()` because they use arithmetic mean return
     s.loc['Sortino Ratio'] = np.clip(
-        annualized_return / (np.sqrt(np.mean(day_returns.clip(-np.inf, 0) ** 2)) * np.sqrt(annual_trading_days)), 0,
-        np.inf)  # noqa: E501
+        annualized_return / (np.sqrt(np.mean(day_returns.clip(-np.inf, 0) ** 2)) * np.sqrt(annual_trading_days)), 0, np.inf
+    )  # noqa: E501
     max_dd = -np.nan_to_num(dd.max())
     s.loc['Calmar Ratio'] = np.clip(annualized_return / (-max_dd or np.nan), 0, np.inf)
     s.loc['Max. Drawdown [%]'] = max_dd * 100
