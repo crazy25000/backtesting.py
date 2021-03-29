@@ -12,7 +12,7 @@ from skopt import forest_minimize
 from skopt.callbacks import DeltaXStopper
 from skopt.learning import ExtraTreesRegressor
 from skopt.utils import use_named_args
-from tqdm.auto import tqdm as _tqdm
+from tqdm.auto import tqdm
 
 from backtesting.broker import Broker
 from backtesting.strategy import Strategy
@@ -22,7 +22,6 @@ from .backtesting_helpers import (
     AttrDict,
     _tuple,
     construct_dimensions,
-    get_constraint_func,
     get_grid_frac,
     get_max_tries,
     loop_through_data,
@@ -157,14 +156,14 @@ class Backtest:
                 if mp.get_start_method(allow_none=False) == 'fork':
                     with ProcessPoolExecutor() as executor:
                         futures = [executor.submit(Backtest._mp_task, backtest_uuid, i) for i in range(len(param_batches))]
-                        for future in _tqdm(as_completed(futures), total=len(futures), desc='Backtest.grid'):
+                        for future in tqdm(as_completed(futures), total=len(futures), desc='Backtest.grid', leave=False):
                             batch_index, values = future.result()
                             for value, params in zip(values, param_batches[batch_index]):
                                 heatmap[tuple(params.values())] = value
                 else:
                     if os.name == 'posix':
                         warnings.warn('For multiprocessing support in `Backtest.optimize()` ' "set multiprocessing start method to 'fork'.")
-                    for batch_index in _tqdm(range(len(param_batches))):
+                    for batch_index in tqdm(range(len(param_batches))):
                         _, values = Backtest._mp_task(backtest_uuid, batch_index)
                         for value, params in zip(values, param_batches[batch_index]):
                             heatmap[tuple(params.values())] = value
@@ -189,7 +188,7 @@ class Backtest:
             memoized_run = lru_cache()(lambda tup: self.run(**dict(tup)))
 
             INVALID = 1e300
-            progress = _tqdm(dimensions, total=max_tries, desc='Backtest.optimize', leave=False)
+            progress = tqdm(dimensions, total=max_tries, desc='Backtest.optimize', leave=False)
 
             @use_named_args(dimensions=dimensions)
             def objective_function(**params):

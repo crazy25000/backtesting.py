@@ -17,14 +17,6 @@ __pdoc__ = {'Strategy.__init__': False}
 
 
 class Strategy(metaclass=ABCMeta):
-    """
-    A trading strategy base class. Extend this class and
-    override methods
-    `backtesting.backtesting.Strategy.init` and
-    `backtesting.backtesting.Strategy.next` to define
-    your own strategy.
-    """
-
     def __init__(self, broker, data, params):
         self._indicators = []
         self._broker: Broker = broker
@@ -62,42 +54,6 @@ class Strategy(metaclass=ABCMeta):
         scatter=False,
         **kwargs,
     ) -> np.ndarray:
-        """
-        Declare indicator. An indicator is just an array of values,
-        but one that is revealed gradually in
-        `backtesting.backtesting.Strategy.next` much like
-        `backtesting.backtesting.Strategy.data` is.
-        Returns `np.ndarray` of indicator values.
-
-        `func` is a function that returns the indicator array(s) of
-        same length as `backtesting.backtesting.Strategy.data`.
-
-        In the plot legend, the indicator is labeled with
-        function name, unless `name` overrides it.
-
-        If `plot` is `True`, the indicator is plotted on the resulting
-        `backtesting.backtesting.Backtest.plot`.
-
-        If `overlay` is `True`, the indicator is plotted overlaying the
-        price candlestick chart (suitable e.g. for moving averages).
-        If `False`, the indicator is plotted standalone below the
-        candlestick chart. By default, a heuristic is used which decides
-        correctly most of the time.
-
-        `color` can be string hex RGB triplet or X11 color name.
-        By default, the next available color is assigned.
-
-        If `scatter` is `True`, the plotted indicator marker will be a
-        circle instead of a connected line segment (default).
-
-        Additional `*args` and `**kwargs` are passed to `func` and can
-        be used for parameters.
-
-        For example, using simple moving average function from TA-Lib:
-
-            def init():
-                self.sma = self.Indicator(ta.SMA, self.data.Close, self.n_sma)
-        """
         if name is None:
             params = ','.join(filter(None, map(_as_str, chain(args, kwargs.values()))))
             func_name = _as_str(func)
@@ -145,7 +101,6 @@ class Strategy(metaclass=ABCMeta):
             overlay=overlay,
             color=color,
             scatter=scatter,
-            # _Indicator.s Series accessor uses this:
             data=self.data,
         )
         self._indicators.append(value)
