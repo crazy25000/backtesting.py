@@ -145,7 +145,7 @@ class Backtest:
             )
 
             def _batch(seq: List[Dict[str, str]]):
-                n = np.clip(len(seq) // (os.cpu_count() or 1), 5, 300)
+                n = np.clip(int(len(seq) // (os.cpu_count() or 1)), 1, 300)
                 for i in range(0, len(seq), n):
                     yield seq[i : i + n]
 

@@ -4,6 +4,7 @@ import sys
 import time
 import unittest
 import warnings
+from concurrent.futures.process import ProcessPoolExecutor
 from contextlib import contextmanager
 
 from tempfile import NamedTemporaryFile
@@ -921,6 +922,13 @@ class TestUtil(TestCase):
                 assert self.data.df['new_key'].equals(pd.Series(self.data.new_key, index=index))
 
         Backtest(GOOG.iloc[:20], S).run()
+
+    def test_indicators_picklable(self):
+        bt = Backtest(SHORT_DATA, SmaCross)
+        with ProcessPoolExecutor() as executor:
+            stats = executor.submit(Backtest.run, bt).result()
+        assert stats._strategy._indicators[0]._opts, '._opts and .name were not unpickled'
+        bt.plot(results=stats, resample='2d', open_browser=False)
 
 
 if __name__ == '__main__':

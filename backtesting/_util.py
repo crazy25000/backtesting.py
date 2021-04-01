@@ -57,6 +57,16 @@ class _Array(np.ndarray):
             self.name = getattr(obj, 'name', '')
             self._opts = getattr(obj, '_opts', {})
 
+    # Make sure properties name and _opts are carried over
+    # when (un-)pickling.
+    def __reduce__(self):
+        value = super().__reduce__()
+        return value[:2] + (value[2] + (self.__dict__,),)
+
+    def __setstate__(self, state):
+        self.__dict__.update(state[-1])
+        super().__setstate__(state[:-1])
+
     def __bool__(self):
         try:
             return bool(self[-1])
@@ -76,12 +86,14 @@ class _Array(np.ndarray):
     @property
     def s(self) -> pd.Series:
         values = np.atleast_2d(self)
-        return pd.Series(values[0], index=self._opts['data'].index, name=self.name)
+        index = self._opts['index'][:values.shape[1]]
+        return pd.Series(values[0], index=index, name=self.name)
 
     @property
     def df(self) -> pd.DataFrame:
         values = np.atleast_2d(np.asarray(self))
-        df = pd.DataFrame(values.T, index=self._opts['data'].index, columns=[self.name] * len(values))
+        index = self._opts['index'][:values.shape[1]]
+        df = pd.DataFrame(values.T, index=index, columns=[self.name] * len(values))
         return df
 
 
@@ -119,9 +131,11 @@ class _Data:
         self.__cache.clear()
 
     def _update(self):
-        self.__arrays = {col: _Array(arr, data=self) for col, arr in self.__df.items()}
+        index = self.__df.index.copy()
+        self.__arrays = {col: _Array(arr, index=index)
+                         for col, arr in self.__df.items()}
         # Leave index as Series because pd.Timestamp nicer API to work with
-        self.__arrays['__index'] = self.__df.index.copy()
+        self.__arrays['__index'] = index
 
     def __repr__(self):
         i = min(self.__i, len(self.__df) - 1)

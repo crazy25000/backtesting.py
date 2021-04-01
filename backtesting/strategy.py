@@ -101,7 +101,7 @@ class Strategy(metaclass=ABCMeta):
             overlay=overlay,
             color=color,
             scatter=scatter,
-            data=self.data,
+            index=self.data.index,
         )
         self._indicators.append(value)
         return value

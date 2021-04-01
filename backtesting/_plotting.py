@@ -8,7 +8,13 @@ from typing import Callable, List, Union
 
 import numpy as np
 import pandas as pd
-from bokeh.colors.named import lime as BULL_COLOR, tomato as BEAR_COLOR
+
+from colorsys import hls_to_rgb, rgb_to_hls
+from bokeh.colors import RGB
+from bokeh.colors.named import (
+    lime as BULL_COLOR,
+    tomato as BEAR_COLOR
+)
 from bokeh.io import output_notebook, output_file, show
 from bokeh.io.state import curstate
 from bokeh.layouts import gridplot
@@ -77,10 +83,11 @@ def colorgen():
     yield from cycle(Category10[10])
 
 
-def lightness(color, lightness=0.94):
-    color = color.to_hsl()
-    color.l = lightness  # noqa
-    return color.to_rgb()
+def lightness(color, lightness=.94):
+    rgb = np.array([color.r, color.g, color.b]) / 255
+    h, _, s = rgb_to_hls(*rgb)
+    rgb = np.array(hls_to_rgb(h, lightness, s)) * 255
+    return RGB(*rgb)
 
 
 _MAX_CANDLES = 10_000
@@ -133,8 +140,8 @@ def _maybe_resample_data(resample_rule, df, indicators, equity_data, trades):
             **dict(
                 i._opts,
                 name=i.name,
-                # HACK: override `data` for its index
-                data=pd.Series(np.nan, index=df.index),
+                # Replace saved index with the resampled one
+                index=df.index
             ),
         )
         for i in indicators
