@@ -53,7 +53,7 @@ class SignalStrategy(Strategy):
         If `plot` is `True`, the signal entry/exit indicators are plotted when
         `backtesting.backtesting.Backtest.plot` is called.
         """
-        self.__entry_signal = self.Indicator(  # type: ignore
+        self.__entry_signal = self.I(  # type: ignore
             lambda: pd.Series(entry_size, dtype=float).replace(0, np.nan),
             name='entry size',
             plot=plot,
@@ -63,7 +63,7 @@ class SignalStrategy(Strategy):
         )
 
         if exit_portion is not None:
-            self.__exit_signal = self.Indicator(  # type: ignore
+            self.__exit_signal = self.I(  # type: ignore
                 lambda: pd.Series(exit_portion, dtype=float).replace(0, np.nan),
                 name='exit portion',
                 plot=plot,

@@ -43,7 +43,7 @@ class Strategy(metaclass=ABCMeta):
             setattr(self, k, v)
         return params
 
-    def Indicator(
+    def I(
         self,
         func: Callable,
         *args,
@@ -67,7 +67,7 @@ class Strategy(metaclass=ABCMeta):
         try:
             value = func(*args, **kwargs)
         except Exception as e:
-            raise RuntimeError(f'Indicator "{name}" errored with exception: {e}')
+            raise RuntimeError(f'I "{name}" errored with exception: {e}')
 
         if isinstance(value, pd.DataFrame):
             value = value.values.T
@@ -111,7 +111,7 @@ class Strategy(metaclass=ABCMeta):
         """
         Initialize the strategy.
         Override this method.
-        Declare indicators (with `backtesting.backtesting.Strategy.Indicator`).
+        Declare indicators (with `backtesting.backtesting.Strategy.I`).
         Precompute what needs to be precomputed or can be precomputed
         in a vectorized fashion before the strategy starts.
 

@@ -55,8 +55,8 @@ class SmaCross(Strategy):
     slow = 30
 
     def init(self):
-        self.sma1 = self.Indicator(SMA, self.data.Close, self.fast)
-        self.sma2 = self.Indicator(SMA, self.data.Close, self.slow)
+        self.sma1 = self.I(SMA, self.data.Close, self.fast)
+        self.sma2 = self.I(SMA, self.data.Close, self.slow)
 
     def next(self):
         if crossover(self.sma1, self.sma2):
@@ -120,17 +120,17 @@ class TestBacktest(TestCase):
     def test_assertions(self):
         class Assertive(Strategy):
             def init(self):
-                self.sma = self.Indicator(SMA, self.data.Close, 10)
+                self.sma = self.I(SMA, self.data.Close, 10)
                 self.remains_indicator = np.r_[2] * np.cumsum(self.sma * 5 + 1) * np.r_[2]
 
-                self.transpose_invalid = self.Indicator(lambda: np.column_stack((self.data.Open, self.data.Close)))
+                self.transpose_invalid = self.I(lambda: np.column_stack((self.data.Open, self.data.Close)))
 
                 resampled = resample_apply('W', SMA, self.data.Close, 3)
                 resampled_ind = resample_apply('W', SMA, self.sma, 3)
                 assert np.unique(resampled[-5:]).size == 1
                 assert np.unique(resampled[-6:]).size == 2
-                assert resampled in self._indicators, 'Strategy.Indicator not called'
-                assert resampled_ind in self._indicators, 'Strategy.Indicator not called'
+                assert resampled in self._indicators, 'Strategy.I not called'
+                assert resampled_ind in self._indicators, 'Strategy.I not called'
 
                 assert 1 == try_(lambda: self.data.X, 1, AttributeError)
                 assert 1 == try_(lambda: self.data['X'], 1, KeyError)
@@ -389,8 +389,8 @@ class TestBacktest(TestCase):
     def test_position_close_portion(self):
         class SmaCross(Strategy):
             def init(self):
-                self.sma1 = self.Indicator(SMA, self.data.Close, 10)
-                self.sma2 = self.Indicator(SMA, self.data.Close, 20)
+                self.sma1 = self.I(SMA, self.data.Close, 10)
+                self.sma2 = self.I(SMA, self.data.Close, 20)
 
             def next(self):
                 if not self.position and crossover(self.sma1, self.sma2):
@@ -701,8 +701,8 @@ class TestPlot(TestCase):
                 def ok(x):
                     return x
 
-                self.a = self.Indicator(SMA, self.data.Open, 5, overlay=False, name='ok')
-                self.b = self.Indicator(ok, np.random.random(len(self.data.Open)))
+                self.a = self.I(SMA, self.data.Open, 5, overlay=False, name='ok')
+                self.b = self.I(ok, np.random.random(len(self.data.Open)))
 
         bt = Backtest(GOOG, Strategy)
         bt.run()
@@ -760,9 +760,9 @@ class TestPlot(TestCase):
     def test_indicator_color(self):
         class S(Strategy):
             def init(self):
-                a = self.Indicator(SMA, self.data.Close, 5, overlay=True, color='red')
-                b = self.Indicator(SMA, self.data.Close, 10, overlay=False, color='blue')
-                self.Indicator(lambda: (a, b), overlay=False, color=('green', 'orange'))
+                a = self.I(SMA, self.data.Close, 5, overlay=True, color='red')
+                b = self.I(SMA, self.data.Close, 10, overlay=False, color='blue')
+                self.I(lambda: (a, b), overlay=False, color=('green', 'orange'))
 
             def next(self):
                 pass
@@ -782,8 +782,8 @@ class TestPlot(TestCase):
     def test_indicator_scatter(self):
         class S(Strategy):
             def init(self):
-                self.Indicator(SMA, self.data.Close, 5, overlay=True, scatter=True)
-                self.Indicator(SMA, self.data.Close, 10, overlay=False, scatter=True)
+                self.I(SMA, self.data.Close, 5, overlay=True, scatter=True)
+                self.I(SMA, self.data.Close, 10, overlay=False, scatter=True)
 
             def next(self):
                 pass
@@ -875,7 +875,7 @@ class TestLib(TestCase):
                 super().init()
                 self.set_atr_periods(40)
                 self.set_trailing_sl(3)
-                self.sma = self.Indicator(lambda: self.data.Close.s.rolling(10).mean())
+                self.sma = self.I(lambda: self.data.Close.s.rolling(10).mean())
 
             def next(self):
                 super().next()

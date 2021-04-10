@@ -45,13 +45,13 @@ def resample_apply(
     resampled.name = _as_str(series) + '[' + rule + ']'
 
     # Check first few stack frames if we are being called from
-    # inside Strategy.init, and if so, extract Strategy.Indicator wrapper.
+    # inside Strategy.init, and if so, extract Strategy.I wrapper.
     frame, level = currentframe(), 0
     while frame and level <= 3:
         frame = frame.f_back
         level += 1
         if isinstance(frame.f_locals.get('self'), Strategy):  # type: ignore
-            strategy_I = frame.f_locals['self'].Indicator  # type: ignore
+            strategy_I = frame.f_locals['self'].I  # type: ignore
             break
     else:
 
