@@ -2,4 +2,3 @@ exclude MANIFEST.in
 exclude .*
 
 recursive-exclude .* *
-recursive-exclude doc *
