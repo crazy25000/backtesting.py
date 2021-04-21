@@ -43,13 +43,6 @@ with open(os.path.join(os.path.dirname(__file__), 'autoscale_cb.js'), encoding='
 IS_JUPYTER_NOTEBOOK = 'JPY_PARENT_PID' in os.environ
 
 if IS_JUPYTER_NOTEBOOK:
-    warnings.warn(
-        'Jupyter Notebook detected. '
-        'Setting Bokeh output to notebook. '
-        'This may not work in Jupyter clients without JavaScript '
-        'support (e.g. PyCharm, Spyder IDE). '
-        'Reset with `backtesting.set_bokeh_output(notebook=False)`.'
-    )
     output_notebook()
 
 

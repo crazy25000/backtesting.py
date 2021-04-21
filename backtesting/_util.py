@@ -80,7 +80,6 @@ class _Array(np.ndarray):
             return super().__float__()
 
     def to_series(self):
-        warnings.warn('`.to_series()` is deprecated. For pd.Series conversion, use accessor `.s`')
         return self.s
 
     @property
