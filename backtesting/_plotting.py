@@ -93,33 +93,25 @@ def _maybe_resample_data(resample_rule, df, indicators, equity_data, trades):
         if resample_rule is False or len(df) <= _MAX_CANDLES:
             return df, indicators, equity_data, trades
 
-        from_index = dict(
-            day=-2,
-            hour=-6,
-            minute=1,
-            second=0,
-            millisecond=0,
-            microsecond=0,
-            nanosecond=0,
-        )[df.index.resolution]
-        FREQS = (
-            '1T',
-            '5T',
-            '10T',
-            '15T',
-            '30T',
-            '1H',
-            '2H',
-            '4H',
-            '8H',
-            '1D',
-            '1W',
-            '1M',
-        )
-        freq = next(
-            (f for f in FREQS[from_index:] if len(df.resample(f)) <= _MAX_CANDLES),
-            FREQS[-1],
-        )
+        minutes_to_freq = {
+            1: "1T",
+            5: "5T",
+            10: "10T",
+            15: "15T",
+            30: "30T",
+            60: "1H",
+            120: "2H",
+            240: "4H",
+            480: "8H",
+            1440: "1D",
+            10080: "1W",
+            43800: "1M",
+        }
+        index_timedelta = df.index[-1] - df.index[0]
+        req_minutes = (index_timedelta / 10000).total_seconds() // 60
+        freq = [v for k, v in minutes_to_freq.items() if k >= req_minutes]
+        freq = freq[0] if freq else "1M"
+
         warnings.warn(f'Data contains too many candlesticks to plot; downsampling to {freq!r}. ' 'See `Backtest.plot(resample=...)`')
 
     from .lib import TRADES_AGG, _EQUITY_AGG
